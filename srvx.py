@@ -221,19 +221,35 @@ class SrvX(asyncore.dispatcher):
             return True
         return False
         
-class AuthServ:
+class AuthServ(SrvX):
 
     def __init__(self):
+        Srvx.__init__(self)
         pass        
 
-class ChanServ:
+class ChanServ(SrvX):
+
+    def info(self, channel, callback = None):
+        self.callback = callback
+        self.send_command('chanserv info %s' % channel, self._info)
+    
+    def _info(self, response):
+   
+        info = {'channel': response[0]['message'].split(' ')[0]}
+    
+        for line in response[1:]:
+            parts = line['message'].split(':')
+            info[parts[0].strip()] = parts[1].strip()
+            
+        if self.callback:
+            self.callback(info)
+        else:
+            logging.debug(info)
+
+class OpServ(SrvX):
 
     def __init__(self):
-        pass        
-
-class OpServ:
-
-    def __init__(self):
+        Srvx.__init__(self)
         pass
         
 # Exceptions
@@ -242,7 +258,11 @@ class AuthServAuthenticationFailure(Exception):
     
 class QServerAuthenticationFailure(Exception):
     pass
-    
+
+
+def json_dumps(data):
+    print json.dumps(data)
+
 # If run via the command line
 if __name__ == '__main__':
 
@@ -288,6 +308,9 @@ if __name__ == '__main__':
     # Turn on debug logging
     logging.basicConfig(level=logging.DEBUG)
     
-    srvx = SrvX(options.ipaddr, options.port, options.password, auth[0], auth[1])
-
+    srvx = ChanServ(options.ipaddr, options.port, options.password, auth[0], auth[1])
+    import json
+       
+    info = srvx.info('#gswww', json_dumps)
     asyncore.loop()
+    
