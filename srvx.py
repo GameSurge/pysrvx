@@ -14,30 +14,41 @@ import random
 import socket
 import time
 
+# Create a common socket
+connection = None
+
 # Core Classes
 class SrvX():
 
     def __init__(self, host='127.0.0.1', port=7702, password=None, auth_user=None, auth_password=None):
 
-        logging.info('Connecting to %s:%i' % (host, int(port)))
+        global connection
+        
+        if not connection:
+    
+            logging.info('Connecting to %s:%i' % (host, int(port)))
+    
+            # Create our socket
+            connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    
+            # Connect to our remote host
+            connection.connect((host, int(port)))
 
-        # Create our socket
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            # By default we're not authenticated
+            self.authenticated = False
+    
+            # Create our buffer string which will be used to hold info across responses if needed
+            self.response = ''
+    
+            # Send the QServer username and password
+            self._send_command('PASS %s' % password, True)
+    
+            # Authenticate
+            self.authenticate(auth_user, auth_password)
 
-        # Connect to our remote host
-        self.socket.connect((host, int(port)))
+        else:        
 
-        # By default we're not authenticated
-        self.authenticated = False
-
-        # Create our buffer string which will be used to hold info across responses if needed
-        self.response = ''
-
-        # Send the QServer username and password
-        self._send_command('PASS %s' % password, True)
-
-        # Authenticate
-        self.authenticate(auth_user, auth_password)
+            logging.debug('Re-using already authenticated and connected session')
 
     def authenticate(self, username, password):
 
@@ -56,7 +67,7 @@ class SrvX():
     def disconnect(self):
 
         logging.debug('Closing connection to QServer')
-        self.socket.close()
+        connection.close()
 
     def generate_token(self):
 
@@ -65,6 +76,8 @@ class SrvX():
 
     def get_response(self):
 
+        global connection
+        
         data = ''
         command_length = 0
         response_done = False
@@ -73,7 +86,7 @@ class SrvX():
         while not response_done:
 
             # Append data from the socket into the global buffer
-            self.response += self.socket.recv(32768)
+            self.response += connection.recv(32768)
 
             # Split the content into a list
             lines = self.response.split('\n')
@@ -140,6 +153,8 @@ class SrvX():
 
     def _send_command(self, command, no_response = False):
 
+        global connection
+
         # Get our token
         self.token = self.generate_token()
 
@@ -148,7 +163,7 @@ class SrvX():
 
         # Send the command
         logging.debug('Sending: %s' % command.strip())
-        self.socket.send(command)
+        connection.send(command)
 
         # return the response
         if not no_response:
