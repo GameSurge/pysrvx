@@ -156,7 +156,10 @@ class SrvX():
 
 
 class AuthServ(SrvX):
-    pass     
+
+    def _command(self, command):
+        return self._send_command('authserv %s' % command)
+
 
 class ChanServ(SrvX):
 
@@ -180,8 +183,12 @@ class ChanServ(SrvX):
     def say(self, channel, message):
         response = self._command('say %s %s' % (channel, message))
 
+
 class OpServ(SrvX):
-    pass
+
+    def _command(self, command):
+        return self._send_command('opserv %s' % command)
+
         
 # Exceptions
 class AuthServAuthenticationFailure(Exception):
@@ -189,11 +196,6 @@ class AuthServAuthenticationFailure(Exception):
     
 class QServerAuthenticationFailure(Exception):
     pass
-
-
-def json_dumps(data):
-    import json
-    print json.dumps(data)
 
 # If run via the command line
 if __name__ == '__main__':
@@ -244,6 +246,3 @@ if __name__ == '__main__':
     print info
     
     chanserv.say('#gswww', "Help! Help! I'm being repressed!")
-    
-    
-    
