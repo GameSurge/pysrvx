@@ -9,248 +9,173 @@ __author__  = 'Gavin M. Roy <gavinmroy@gmail.com>'
 __date__    = '2010-01-10'
 __version__ = '0.1'
 
-import asyncore
 import logging
 import random
 import socket
 import time
 
 # Core Classes
-class SrvX(asyncore.dispatcher):
+class SrvX():
 
     def __init__(self, host='127.0.0.1', port=7702, password=None, auth_user=None, auth_password=None):
 
         logging.info('Connecting to %s:%i' % (host, int(port)))
         
-        # Initialize the class we extended
-        asyncore.dispatcher.__init__(self)
-        
         # Create our socket
-        self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         
         # Connect to our remote host
-        self.connect((host, int(port)))
+        self.socket.connect((host, int(port)))
         
         # By default we're not authenticated
         self.authenticated = False
 
-        # Create our command dictionary, holds state of commands
-        self.commands = []
-        self.sent_commands = []
+        # Create our buffer string which will be used to hold info across responses if needed
+        self.response = ''
         
-        # Reading State, we receive responses synchronically so process one response until it ends
-        self.processing_packet = False
-        self.response_buffer = ''
-         
         # Send the QServer username and password 
-        self.send_command('PASS %s' % password)
+        self.send_command('PASS %s' % password, True)
         
-        # Send the AuthServ auth request
-        self.send_command('AuthServ AUTH %s %s' % (auth_user, auth_password), self.auth_response)
-
-    def auth_response(self, response):
-        # Callback function for when we try and authenticate with Authserv        
+        # Authenticate
+        self.authenticate(auth_user, auth_password)
+ 
+    def authenticate(self, username, password):
+    
         logging.debug('Processing AuthServ Authentication Request')
-        
-        # Set message format, if it matches, we authed otherise raise an exception
-        if response[0]['message'] == 'I recognize you.':
+
+        # Send the AuthServ auth request
+        response = self.send_command('AuthServ AUTH %s %s' % (username, password))
+    
+        # Parse the response    
+        if response['data'][0] == 'I recognize you.':
             logging.info('Authenticated with AuthServ')
             self.authenticated = True
         else:
-            raise AuthServAuthenticationFailure(response[0]['message'])
-
-    def handle_connect(self):
-        pass
-
-    def handle_close(self):
+            raise AuthServAuthenticationFailure(response['data'][0])
+    
+    def disconnect(self):
+        
         logging.debug('Closing connection to QServer')
-        self.close()
+        self.socket.close()
 
-    def handle_read(self):
-        response = self.recv(8192)
-        logging.debug('Received: %s' % response.strip())
-        
-        lines = response.split('\n')
-        
-        for line in lines:
-        
-            logging.debug('New Line: %s' % line)
-            if not self.processing_packet:
-                
-                # Loop through our dictionary of commands to find which command we're responding to
-                for command in self.sent_commands:
-                                        
-                    # If it finds the token
-                    if line.find(command['token']) > -1:
-                    
-                        logging.debug('Matched on token %s' % command['token'])
-                        
-                        # Do an initial split to so we know our response code
-                        parts = line.split(' ')
-                        response_code = parts[1]
-                        logging.debug('Response code: %s' % response_code)
-                        
-                        # We did not auth with QServer Successfully
-                        if response_code == 'X':
-                            self.shutdown()
-                            raise QServerAuthenticationFailure()
-                        
-                        elif response_code == 'S':
-                            logging.debug('Got a S packet, processing more')
-                            self.processing_packet = True
-                            self.response_buffer = ''
-                            continue
-
-                        else: 
-                            'Unexpected response: %s' % line
-
-            else:
-
-                # Loop through our dictionary of commands to find which command we're responding to
-                for command in self.sent_commands:
-                                        
-                    # If it finds the token
-                    if line.find(command['token']) > -1:
-                    
-                        logging.debug('Matched on token %s' % command['token'])
-                        
-                        # Do an initial split to so we know our response code
-                        parts = line.split(' ')
-                        response_code = parts[1]
-                        logging.debug('Response code: %s' % response_code)
-     
-                        if response_code == 'E':
-                            self.processing_packet = False
-                            self.process_buffer(command['token'])
-                            continue
-                        else: 
-                            # Append the buffer
-                            logging.debug('Unexpected line: "%s"' % line)
-                            self.response_buffer += '%s\n' % line
-                            continue
-
-                # Append the buffer
-                logging.debug(' Appending buffer with "%s"' % line)
-                self.response_buffer += '%s\n' % line
-                continue
-
-    def handle_write(self):
-    
-        # While we have commands to send
-        while len(self.commands):
-        
-            # Get the command off the list
-            command = self.commands.pop(0)
-            
-            logging.debug('Sending: %s' % command['command'].strip())
-            self.send(command['command'])
-
-            # Set the sent time and append to our sent_commands stack
-            command['sent_at'] = time.time()
-            self.sent_commands.append(command)
-
-    def process_buffer(self, token):
-
-        # Pull out of the shared buffer
-        response = self.response_buffer
-        logging.debug('Processing buffer for token %s' % token)
-        
-        # Pull the sent command off the stack to process
-        offset = 0
-        for command in self.sent_commands:
-            if command['token'] == token:
-                break
-            offset += 1
-
-        # Remove it from the stack
-        self.sent_commands.pop(offset)
-
-        # Split our response into individual lines
-        lines = response.split('\n')     
-        
-        # Create a new list for the response
-        response = []
-        
-        # Loop through the lines
-        for line in lines:
-        
-            # Find the first :
-            delimiter_position = line.find(':')
-            
-            # Get the base packet info
-            packet_info = line[0:delimiter_position].split(' ')
-            if len(packet_info) > 2:
-                response.append({'from': packet_info[0],
-                                 'response_type': packet_info[1],
-                                 'message': line[delimiter_position + 1:].replace(chr(0x02), '"')})
-        
-        # If we have a callback command, run it
-        if command['callback']:
-            command['callback'](response)
-
-    def send_command(self, command, callback = None):
-    
-        # Get our token
-        token = self.token()
-        
-        # Put a token infront of the command
-        command = '%s %s\n' % (token, command)
-
-        # Add to our command stack
-        self.commands.append({'token': token,
-                              'command': command, 
-                              'callback': callback, 
-                              'sent': False,
-                              'timestamp': time.time()})
-    
-    def shutdown(self):
-    
-        # Close the socket
-        self.close()
-    
-
-    def token(self):
+    def generate_token(self):
         
         # Return a token generated from a random number        
         return 'GS%05d' % random.randint(0,65535)
+        
+    def get_response(self):
 
-    def writable(self):
+        data = ''
+        command_length = 0
+        response_done = False
+
+        # Loop until the response is done
+        while not response_done:
+            
+            # Append data from the socket into the global buffer        
+            self.response += self.socket.recv(32768)
+
+            # Split the content into a list
+            lines = self.response.split('\n')
+            
+            # Loop through each line in the list
+            for line in lines:
         
-        # If we have any commands let asyncore know we can send
-        if len(self.commands) > 0:
-            return True
-        return False
+                # If it finds the token
+                if line.find(self.token) > -1:
+                
+                    logging.debug('Matched on token %s' % self.token)
+                    
+                    # Do an initial split to so we know our response code
+                    parts = line.split(' ')
+                    response_code = parts[1]
+                    
+                    # We did not auth with QServer Successfully
+                    if response_code == 'X':
+                        command_length += len(line)
+                        self.disconnect()
+                        raise QServerAuthenticationFailure()
+                    
+                    elif response_code == 'S':
+                        logging.debug('Got a S packet, processing more')
+                        command_length += len(line) + 1
+                        continue
+
+                    elif response_code == 'E':
+                        
+                        # We've reached the end of the response
+                        logging.debug('Got a E packet, ending response')
+                        command_length += len(line) + 1
+                        response_done = True
+                        break
+                        
+                    else:
+                        # Append the buffer
+                        logging.debug('Unexpected line: "%s"' % line)
+                        command_length += len(line) + 1
+                        data += '%s\n' % line
+                else:
+                    command_length += len(line) + 1
+                    data += '%s\n' % line      
+                
+                            
+        # Remove our command from the response buffer
+        self.response = self.response[command_length:]
+        logging.debug('Processed %i bytes leaving %i bytes in the global buffer' % (command_length, len(self.response)))        
+
+        # Build our response packet
+        response = {'data': []}
+        lines = data.split('\n')
+        for line in lines:
+            
+            if not response.has_key('from'):
+                parts = line.split(' ')
+                response['from'] = parts[0]
+            
+            content = line[line.find(':') + 1:]
+            response['data'].append(content.strip())
+
+        # Return the response
+        return response        
+
+    def send_command(self, command, no_response = False):
+    
+        # Get our token
+        self.token = self.generate_token()
         
+        # Put a token infront of the command
+        command = '%s %s\n' % (self.token, command)
+        
+        # Send the command
+        logging.debug('Sending: %s' % command.strip())
+        self.socket.send(command)
+        
+        # return the response
+        if not no_response:
+            return self.get_response()
+
+
 class AuthServ(SrvX):
-
-    def __init__(self):
-        Srvx.__init__(self)
-        pass        
+    pass     
 
 class ChanServ(SrvX):
 
-    def info(self, channel, callback = None):
-        self.callback = callback
-        self.send_command('chanserv info %s' % channel, self._info)
+    def info(self, channel):
+        response = self.send_command('chanserv info %s' % channel)
     
-    def _info(self, response):
-   
-        info = {'channel': response[0]['message'].split(' ')[0]}
+        info = {'channel': response['data'][0].split(' ')[0]}
     
-        for line in response[1:]:
-            parts = line['message'].split(':')
-            info[parts[0].strip()] = parts[1].strip()
-            
-        if self.callback:
-            self.callback(info)
-        else:
-            logging.debug(info)
+        for line in response['data'][1:]:
+            parts = line.split(':')
+            if len(parts) > 1:
+                info[parts[0].strip()] = parts[1].strip()
+            else:
+                if len(line.strip()) > 0:
+                    logging.error('Odd info response: %s' % line)            
+        return info
 
 class OpServ(SrvX):
-
-    def __init__(self):
-        Srvx.__init__(self)
-        pass
+    pass
         
 # Exceptions
 class AuthServAuthenticationFailure(Exception):
@@ -261,11 +186,11 @@ class QServerAuthenticationFailure(Exception):
 
 
 def json_dumps(data):
+    import json
     print json.dumps(data)
 
 # If run via the command line
 if __name__ == '__main__':
-
     import optparse
     
     usage = "usage: %prog [options]"
@@ -309,8 +234,5 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     
     srvx = ChanServ(options.ipaddr, options.port, options.password, auth[0], auth[1])
-    import json
-       
-    info = srvx.info('#gswww', json_dumps)
-    asyncore.loop()
-    
+    info = srvx.info('#gswww')
+    print info
