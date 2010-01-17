@@ -34,7 +34,7 @@ class SrvX():
         self.response = ''
         
         # Send the QServer username and password 
-        self.send_command('PASS %s' % password, True)
+        self._send_command('PASS %s' % password, True)
         
         # Authenticate
         self.authenticate(auth_user, auth_password)
@@ -44,7 +44,7 @@ class SrvX():
         logging.debug('Processing AuthServ Authentication Request')
 
         # Send the AuthServ auth request
-        response = self.send_command('AuthServ AUTH %s %s' % (username, password))
+        response = self._send_command('AuthServ AUTH %s %s' % (username, password))
     
         # Parse the response    
         if response['data'][0] == 'I recognize you.':
@@ -138,7 +138,7 @@ class SrvX():
         # Return the response
         return response        
 
-    def send_command(self, command, no_response = False):
+    def _send_command(self, command, no_response = False):
     
         # Get our token
         self.token = self.generate_token()
@@ -161,7 +161,7 @@ class AuthServ(SrvX):
 class ChanServ(SrvX):
 
     def info(self, channel):
-        response = self.send_command('chanserv info %s' % channel)
+        response = self._command('info %s' % channel)
     
         info = {'channel': response['data'][0].split(' ')[0]}
     
@@ -173,6 +173,12 @@ class ChanServ(SrvX):
                 if len(line.strip()) > 0:
                     logging.error('Odd info response: %s' % line)            
         return info
+    
+    def _command(self, command):
+        return self._send_command('chanserv %s' % command)
+    
+    def say(self, channel, message):
+        response = self._command('say %s %s' % (channel, message))
 
 class OpServ(SrvX):
     pass
@@ -233,6 +239,11 @@ if __name__ == '__main__':
     # Turn on debug logging
     logging.basicConfig(level=logging.DEBUG)
     
-    srvx = ChanServ(options.ipaddr, options.port, options.password, auth[0], auth[1])
-    info = srvx.info('#gswww')
+    chanserv = ChanServ(options.ipaddr, options.port, options.password, auth[0], auth[1])
+    info = chanserv.info('#gswww')
     print info
+    
+    chanserv.say('#gswww', "Help! Help! I'm being repressed!")
+    
+    
+    
