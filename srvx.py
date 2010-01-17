@@ -162,26 +162,34 @@ class AuthServ(SrvX):
 
 
 class ChanServ(SrvX):
-
+    
+    def _command(self, command):
+        return self._send_command('chanserv %s' % command)
+        
     def info(self, channel):
+    
+        # Send our command to ChanServ
         response = self._command('info %s' % channel)
     
+        # Build the initial dictionary    
         info = {'channel': response['data'][0].split(' ')[0]}
     
+        # Loop through the remaining lines and build a dictionary of values
         for line in response['data'][1:]:
             parts = line.split(':')
             if len(parts) > 1:
                 info[parts[0].strip()] = parts[1].strip()
             else:
                 if len(line.strip()) > 0:
-                    logging.error('Odd info response: %s' % line)            
+                    logging.error('Odd info response: %s' % line)
+                    
+        # Return the dictionary  
         return info
     
-    def _command(self, command):
-        return self._send_command('chanserv %s' % command)
-    
     def say(self, channel, message):
-        response = self._command('say %s %s' % (channel, message))
+        
+        # Send the say command, we don't care about the response
+        self._command('say %s %s' % (channel, message))
 
 
 class OpServ(SrvX):
