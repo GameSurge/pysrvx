@@ -23,30 +23,30 @@ class SrvX():
     def __init__(self, host='127.0.0.1', port=7702, password=None, auth_user=None, auth_password=None):
 
         global connection
-        
+
         if not connection:
-    
+
             logging.info('Connecting to %s:%i' % (host, int(port)))
-    
+
             # Create our socket
             connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    
+
             # Connect to our remote host
             connection.connect((host, int(port)))
 
             # By default we're not authenticated
             self.authenticated = False
-    
+
             # Create our buffer string which will be used to hold info across responses if needed
             self.response = ''
-    
+
             # Send the QServer username and password
             self._send_command('PASS %s' % password, True)
-    
+
             # Authenticate
             self.authenticate(auth_user, auth_password)
 
-        else:        
+        else:
 
             logging.debug('Re-using already authenticated and connected session')
 
@@ -77,7 +77,7 @@ class SrvX():
     def get_response(self):
 
         global connection
-        
+
         data = ''
         command_length = 0
         response_done = False
