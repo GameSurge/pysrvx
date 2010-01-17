@@ -222,10 +222,7 @@ class SrvX(asyncore.dispatcher):
         return False
         
 class AuthServ(SrvX):
-
-    def __init__(self):
-        Srvx.__init__(self)
-        pass        
+    pass     
 
 class ChanServ(SrvX):
 
@@ -247,10 +244,7 @@ class ChanServ(SrvX):
             logging.debug(info)
 
 class OpServ(SrvX):
-
-    def __init__(self):
-        Srvx.__init__(self)
-        pass
+    pass
         
 # Exceptions
 class AuthServAuthenticationFailure(Exception):
@@ -261,11 +255,11 @@ class QServerAuthenticationFailure(Exception):
 
 
 def json_dumps(data):
+    import json
     print json.dumps(data)
 
 # If run via the command line
 if __name__ == '__main__':
-
     import optparse
     
     usage = "usage: %prog [options]"
@@ -309,8 +303,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     
     srvx = ChanServ(options.ipaddr, options.port, options.password, auth[0], auth[1])
-    import json
-       
     info = srvx.info('#gswww', json_dumps)
+
     asyncore.loop()
     
