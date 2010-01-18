@@ -354,6 +354,8 @@ class OpServ():
         else:
             response = self._command('access *%s %i' % (account, int(level)))
 
+        # "*ThiefMaster (account ThiefMaster) has 900 access."
+        # Account SomeAccount has not been registered.
         parts = response['data'][0].split(' ')
         if parts[3] == 'not':
             return None
