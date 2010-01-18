@@ -21,7 +21,7 @@ connection = None
 # Core Classes
 class SrvX():
 
-    def __init__(self, host='127.0.0.1', port=7702, password=None, auth_user=None, auth_password=None, god_mode=True):
+    def __init__(self, host='127.0.0.1', port=7702, password=None, auth_user=None, auth_password=None):
 
         global connection
 
@@ -47,9 +47,6 @@ class SrvX():
 
             # Authenticate
             self.authenticate(auth_user, auth_password)
-
-            # Enable helping mode
-            self.god_mode(True)
 
         else:
 
