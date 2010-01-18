@@ -184,21 +184,29 @@ class SrvX():
 class AuthServ():
 
     def __init__(self, srvx):
+
+        # Make sure that a srvx object was passed in
         if isinstance(srvx, SrvX):
             self.srvx = srvx
         else:
             raise InvalidSrvXObject
 
     def _command(self, command):
+
+        # Run the command in the srvx object
         return self.srvx._send_command('authserv %s' % command)
 
     def checkpass(self, account, password):
+
+        # Check to see if the account and password are valid in returning bool
         response = self._command('checkpass %s %s' % (account, password))
         return response['data'][0] == 'Yes.'
 
 class ChanServ():
 
     def __init__(self, srvx):
+
+        # Make sure that a srvx object was passed in
         if isinstance(srvx, SrvX):
             self.srvx = srvx
         else:
@@ -221,17 +229,22 @@ class ChanServ():
         # Loop through the response from the 2nd line
         for line in response['data'][2:len(response['data']) - 1]:
 
+            # Append the dictionary for the row to the ban list
             bans.append({'mask': line[c1:c2].strip(),
                          'set_by': line[c2:c3 - 1].strip(),
                          'triggered': line[c3:c4 - 1].strip(),
                          'reason': line[c4:].strip()})
 
+        # Remove the ban list dictionary
         return bans
 
     def _command(self, command):
+
+        # Send the command through srvx
         return self.srvx.send_command('chanserv %s' % command)
 
     def clist(self, channel):
+
         # Use the generic users function
         return self.users(channel, 'clist')
 
@@ -256,6 +269,7 @@ class ChanServ():
         return info
 
     def mlist(self, channel):
+
         # Use the generic users function
         return self.users(channel, 'mlist')
 
@@ -265,10 +279,12 @@ class ChanServ():
         self._command('say %s %s' % (channel, message))
 
     def olist(self, channel):
+
         # Use the generic users function
         return self.users(channel, 'olist')
 
     def plist(self, channel):
+
         # Use the generic users function
         return self.users(channel, 'plist')
 
@@ -298,6 +314,7 @@ class ChanServ():
         return users
 
     def wlist(self, channel):
+
         # Use the generic users function
         return self.users(channel, 'wlist')
 
@@ -305,13 +322,17 @@ class ChanServ():
 class OpServ():
 
     def __init__(self, srvx):
+
+        # Make sure that a srvx object was passed in
         if isinstance(srvx, SrvX):
             self.srvx = srvx
         else:
             raise InvalidSrvXObject
 
     def _command(self, command):
-        return self.srvx.send_command('chanserv %s' % command)
+
+        # Run the command in the srvx object
+        return self.srvx.send_command('opserv %s' % command)
 
 
 # Exceptions
