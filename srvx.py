@@ -161,13 +161,13 @@ class SrvX():
         return response
 
     def god_mode(self, enabled):
-        # toggle godmode 
+        # toggle godmode
         if enabled:
             # Enable helping mode
-            self._send_command('chanserv god on')    
+            self._send_command('chanserv god on')
         else:
             # Disable helping mode
-            self._send_command('chanserv god off')    
+            self._send_command('chanserv god off')
 
     def _send_command(self, command, no_response = False):
 
