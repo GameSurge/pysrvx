@@ -346,6 +346,19 @@ class OpServ():
         # Run the command in the srvx object
         return self.srvx.send_command('opserv %s' % command)
 
+    def access(self, account, level=None):
+
+        # Get the opserv access level of an account
+        if level is None:
+            response = self._command('access *%s' % account)
+        else:
+            response = self._command('access *%s %i' % (account, int(level)))
+
+        parts = response['data'][0].split(' ')
+        if parts[3] == 'not':
+            return None
+        return int(parts[4])
+
 
 # Exceptions
 class AuthServAuthenticationFailure(Exception):
