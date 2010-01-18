@@ -205,10 +205,10 @@ class ChanServ():
             raise InvalidSrvXObject
 
     def bans(self, channel):
-    
+
         # List to hold our bans
         bans = []
-        
+
         # Send our command to ChanServ
         response = self._command('bans %s' % channel)
 
@@ -217,17 +217,17 @@ class ChanServ():
         c2 = response['data'][0].find('Set By')
         c3 = response['data'][0].find('Triggered')
         c4 = response['data'][0].find('Reason')
-        
+
         # Loop through the response from the 2nd line
         for line in response['data'][2:len(response['data']) - 1]:
-        
+
             bans.append({'mask': line[c1:c2].strip(),
                          'set_by': line[c2:c3 - 1].strip(),
                          'triggered': line[c3:c4 - 1].strip(),
                          'reason': line[c4:].strip()})
-            
+
         return bans
-                            
+
     def _command(self, command):
         return self.srvx.send_command('chanserv %s' % command)
 
@@ -288,13 +288,13 @@ class ChanServ():
 
         # Loop through the response from the 2nd line
         for line in response['data'][2:len(response['data'])]:
-        
+
             if line[0:4] != 'None':
                 users.append({'access': line[c1:c2].strip(),
                               'account': line[c2:c3 - 1].strip(),
                               'last_seen': line[c3:c4 - 1].strip(),
                               'status': line[c4:].strip()})
-        
+
         return users
 
     def wlist(self, channel):
