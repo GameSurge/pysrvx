@@ -21,7 +21,7 @@ connection = None
 # Core Classes
 class SrvX():
 
-    def __init__(self, host='127.0.0.1', port=7702, password=None, auth_user=None, auth_password=None, helping_mode=True):
+    def __init__(self, host='127.0.0.1', port=7702, password=None, auth_user=None, auth_password=None, god_mode=True):
 
         global connection
 
@@ -159,6 +159,15 @@ class SrvX():
 
         # Return the response
         return response
+
+    def god_mode(self, enabled):
+        # toggle godmode 
+        if enabled:
+            # Enable helping mode
+            self._send_command('chanserv god on')    
+        else:
+            # Disable helping mode
+            self._send_command('chanserv god off')    
 
     def _send_command(self, command, no_response = False):
 
