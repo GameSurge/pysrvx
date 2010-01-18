@@ -380,6 +380,7 @@ class OpServ():
         response = self._command("stats trusted %s" % (ip or ""))
 
         # 192.168.2.1 (limit 10; set 2 minutes and 41 seconds ago by cltx; expires 23 hours and 57 minutes: test bla)
+        # 192.168.2.2 (no limit; set 2 minutes and 40 seconds ago by cltx; expires never: test bla)
         for line in response['data'][1:]:
             matches = re.match(r"^(\S+) \((limit (\d+)|no limit); set ([a-z0-9 ]+) ago by (\S+); expires ([^:]+): (.+)\)$", line)
             trust = {'ip': matches.group(1),
