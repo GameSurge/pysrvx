@@ -170,6 +170,14 @@ class SrvX():
         if not no_response:
             return self.get_response()
 
+    def send_command(self, command):
+        
+        # If we're not authenticated do not send the command
+        if not self.authenticated:
+            raise SrvXNotAuthenticated
+        
+        # Send the command            
+        return self._send_command(command)
 
 class AuthServ():
 
@@ -195,7 +203,7 @@ class ChanServ():
             raise InvalidSrvXObject
 
     def _command(self, command):
-        return self.srvx._send_command('chanserv %s' % command)
+        return self.srvx.send_command('chanserv %s' % command)
 
     def info(self, channel):
 
@@ -232,7 +240,7 @@ class OpServ():
             raise InvalidSrvXObject
 
     def _command(self, command):
-        return self.srvx._send_command('chanserv %s' % command)
+        return self.srvx.send_command('chanserv %s' % command)
 
 
 # Exceptions
@@ -244,12 +252,15 @@ class QServerAuthenticationFailure(Exception):
     
 class InvalidSrvXObject(Exception):
     pass
-
+    
+class SrvXNotAuthenticated(Exception):
+    pass
+    
 # If run via the command line
 if __name__ == '__main__':
     import optparse
 
-    usage = "usage: %prog [options]"
+    usage = "usage: %prog [options] [class function args]"
     version_string = "%%prog %s" % __version__
     description = "Command Line SrvX Tool"
 
@@ -287,16 +298,34 @@ if __name__ == '__main__':
         parser.print_help();
 
     # Turn on debug logging
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
 
-    srvx = SrvX(options.ipaddr, options.port, options.password, auth[0], auth[1])
+    if len(args) >= 2:
+    
+        # Intialize srvx
+        srvx = SrvX(options.ipaddr, options.port, options.password, auth[0], auth[1])
 
-    chanserv = ChanServ(srvx)
-    info = chanserv.info('#gswww')
-    print info
+        class_name = args[0].lower()
+        function_name = args[1]
 
-    #chanserv.say('#gswww', "Help! Help! I'm being repressed!")
+        if class_name == 'authserv':
+            obj = AuthServ(srvx)
+        elif class_name == 'chanserv':
+            obj = ChanServ(srvx)
+        elif class_name == 'opserv':
+            obj = OpServ(srvx)
+        
+        # Get the function handle        
+        function = getattr(obj, function_name)
+        
+        logging.debug('Calling %s.%s' % (class_name, function_name))  
 
-    authserv = AuthServ(srvx)
-    print 'Should pass: %i' %  authserv.checkpass(auth[0], auth[1])
-    print 'Should not pass: %i' % authserv.checkpass(auth[0], auth[0])
+        # Call the object function
+        if len(args) == 3:
+            print function(args[2])
+        elif len(args) == 4:
+            print function(args[2], args[3])
+        elif len(args) == 5:
+            print function(args[2], args[3], args[4])
+        elif len(args) == 6:
+            print function(args[2], args[3], args[4], args[5])
