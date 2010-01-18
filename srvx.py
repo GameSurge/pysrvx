@@ -15,6 +15,7 @@ import socket
 import time
 
 # Create a common socket
+authenticated = False
 connection = None
 
 # Core Classes
@@ -22,8 +23,15 @@ class SrvX():
 
     def __init__(self, host='127.0.0.1', port=7702, password=None, auth_user=None, auth_password=None):
 
-        global connection
+        global autheticated, connection
 
+        # Create our buffer string which will be used to hold info across responses if needed
+        self.response = ''
+
+        # By default we're not authenticated
+        self.authenticated = authenticated
+        
+        # If we don't have a connection, connect and authenticate
         if not connection:
 
             logging.info('Connecting to %s:%i' % (host, int(port)))
@@ -33,12 +41,6 @@ class SrvX():
 
             # Connect to our remote host
             connection.connect((host, int(port)))
-
-            # By default we're not authenticated
-            self.authenticated = False
-
-            # Create our buffer string which will be used to hold info across responses if needed
-            self.response = ''
 
             # Send the QServer username and password
             self._send_command('PASS %s' % password, True)
@@ -50,8 +52,14 @@ class SrvX():
 
             logging.debug('Re-using already authenticated and connected session')
 
+
+
+
+
     def authenticate(self, username, password):
 
+        global authenticated 
+        
         logging.debug('Processing AuthServ Authentication Request')
 
         # Send the AuthServ auth request
@@ -60,6 +68,7 @@ class SrvX():
         # Parse the response
         if response['data'][0] == 'I recognize you.':
             logging.info('Authenticated with AuthServ')
+            authenticated = True
             self.authenticated = True
         else:
             raise AuthServAuthenticationFailure(response['data'][0])
@@ -175,6 +184,9 @@ class AuthServ(SrvX):
     def _command(self, command):
         return self._send_command('authserv %s' % command)
 
+    def checkpass(self, account, password):
+        response = self._command('checkpass %s %s' % (account, password))
+        return response['data'][0] == 'Yes.'
 
 class ChanServ(SrvX):
 
@@ -268,4 +280,14 @@ if __name__ == '__main__':
     info = chanserv.info('#gswww')
     print info
 
-    chanserv.say('#gswww', "Help! Help! I'm being repressed!")
+    #chanserv.say('#gswww', "Help! Help! I'm being repressed!")
+    
+    authserv = AuthServ(options.ipaddr, options.port, options.password, auth[0], auth[1])
+
+    print 'Should pass:'
+    info = authserv.checkpass(auth[0], auth[1])
+    print info
+
+    print 'Should not pass:'
+    info = authserv.checkpass(auth[0], auth[0])
+    print info
