@@ -11,6 +11,7 @@ __version__ = '0.1'
 
 import logging
 import random
+import re
 import socket
 import time
 
@@ -230,6 +231,34 @@ class ChanServ():
         # Send the say command, we don't care about the response
         self._command('say %s %s' % (channel, message))
 
+    def users(self, channel):
+            
+        # List to put users in
+        users = []
+        
+        # Get the userlist data        
+        response = self._command('users %s' % channel)
+        
+        # Loop through the response from the 2nd line
+        for line in response['data'][2:]:
+
+            # Rely on auto-splitting for whitespace
+            parts = line.split()
+
+            # When last seen is one word
+            if len(parts) == 4:
+                users.append({'level': parts[0],
+                              'account': parts[1],
+                              'last_seen': parts[2],
+                              'status': parts[3]})
+            # Since we relied upon auto-split to not get extra whitespace
+            # we'll have to rebuild the last seen value
+            elif len(parts) > 4:
+                users.append({'level': parts[0],
+                              'account': parts[1],
+                              'last_seen': ' '.join(parts[2:len(parts) - 1]),
+                              'status': parts[len(parts) - 1]})
+        return users
 
 class OpServ():
 
