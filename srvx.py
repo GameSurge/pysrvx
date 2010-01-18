@@ -49,7 +49,7 @@ class SrvX():
             self.authenticate(auth_user, auth_password)
 
             # Enable helping mode
-            self._send_command('chanserv god %s' % (helping_mode and "on" or "off"))
+            self.god_mode(True)
 
         else:
 
@@ -161,7 +161,8 @@ class SrvX():
         return response
 
     def god_mode(self, enabled):
-        # toggle godmode
+
+        logging.debug('Toggling god_mode to: %i' % enabled)
         if enabled:
             # Enable helping mode
             self._send_command('chanserv god on')
