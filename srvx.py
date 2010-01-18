@@ -202,6 +202,12 @@ class AuthServ():
         # Run the command in the srvx object
         return self.srvx._send_command('authserv %s' % command)
 
+    def checkemail(self, account, email):
+
+        # Check if the account email is the given one
+        response = self._command('checkemail *%s %s' % (account, email))
+        return response['data'][0] == 'Yes.'
+
     def checkpass(self, account, password):
 
         # Check to see if the account and password are valid in returning bool
