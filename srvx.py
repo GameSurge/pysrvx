@@ -148,7 +148,8 @@ class SrvX():
                 response['from'] = parts[0]
 
             content = line[line.find(':') + 1:]
-            response['data'].append(content.strip())
+            if len(content.strip()):
+                response['data'].append(content.strip())
 
         # Return the response
         return response
@@ -203,6 +204,30 @@ class ChanServ():
         else:
             raise InvalidSrvXObject
 
+    def bans(self, channel):
+    
+        # List to hold our bans
+        bans = []
+        
+        # Send our command to ChanServ
+        response = self._command('bans %s' % channel)
+
+        # Get the column positions
+        c1 = 0
+        c2 = response['data'][0].find('Set By')
+        c3 = response['data'][0].find('Triggered')
+        c4 = response['data'][0].find('Reason')
+        
+        # Loop through the response from the 2nd line
+        for line in response['data'][2:len(response['data']) - 1]:
+        
+            bans.append({'mask': line[c1:c2].strip(),
+                         'set_by': line[c2:c3 - 1].strip(),
+                         'triggered': line[c3:c4 - 1].strip(),
+                         'reason': line[c4:].strip()})
+            
+        return bans
+                            
     def _command(self, command):
         return self.srvx.send_command('chanserv %s' % command)
 
@@ -255,25 +280,21 @@ class ChanServ():
         # Get the userlist data
         response = self._command('%s %s' % (list_type, channel))
 
+        # Get the column positions
+        c1 = 0
+        c2 = response['data'][1].find('Account')
+        c3 = response['data'][1].find('Last Seen')
+        c4 = response['data'][1].find('Status')
+
         # Loop through the response from the 2nd line
-        for line in response['data'][2:]:
-
-            # Rely on auto-splitting for whitespace
-            parts = line.split()
-
-            # When last seen is one word
-            if len(parts) == 4:
-                users.append({'level': parts[0],
-                              'account': parts[1],
-                              'last_seen': parts[2],
-                              'status': parts[3]})
-            # Since we relied upon auto-split to not get extra whitespace
-            # we'll have to rebuild the last seen value
-            elif len(parts) > 4:
-                users.append({'level': parts[0],
-                              'account': parts[1],
-                              'last_seen': ' '.join(parts[2:len(parts) - 1]),
-                              'status': parts[len(parts) - 1]})
+        for line in response['data'][2:len(response['data'])]:
+        
+            if line[0:4] != 'None':
+                users.append({'access': line[c1:c2].strip(),
+                              'account': line[c2:c3 - 1].strip(),
+                              'last_seen': line[c3:c4 - 1].strip(),
+                              'status': line[c4:].strip()})
+        
         return users
 
     def wlist(self, channel):
