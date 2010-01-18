@@ -30,7 +30,7 @@ class SrvX():
 
         # By default we're not authenticated
         self.authenticated = False
-        
+
         # If we don't have a connection, connect and authenticate
         if not connection:
 
@@ -53,7 +53,7 @@ class SrvX():
             logging.debug('Re-using already authenticated and connected session')
 
     def authenticate(self, username, password):
-        
+
         logging.debug('Processing AuthServ Authentication Request')
 
         # Send the AuthServ auth request
@@ -172,18 +172,18 @@ class SrvX():
             return self.get_response()
 
     def send_command(self, command):
-        
+
         # If we're not authenticated do not send the command
         if not self.authenticated:
             raise SrvXNotAuthenticated
-        
-        # Send the command            
+
+        # Send the command
         return self._send_command(command)
 
 class AuthServ():
 
     def __init__(self, srvx):
-        if isinstance(srvx, SrvX):    
+        if isinstance(srvx, SrvX):
             self.srvx = srvx
         else:
             raise InvalidSrvXObject
@@ -198,13 +198,17 @@ class AuthServ():
 class ChanServ():
 
     def __init__(self, srvx):
-        if isinstance(srvx, SrvX):    
+        if isinstance(srvx, SrvX):
             self.srvx = srvx
         else:
             raise InvalidSrvXObject
 
     def _command(self, command):
         return self.srvx.send_command('chanserv %s' % command)
+
+    def clist(self, channel):
+        # Use the generic users function
+        return self.users(channel, 'clist')
 
     def info(self, channel):
 
@@ -226,19 +230,31 @@ class ChanServ():
         # Return the dictionary
         return info
 
+    def mlist(self, channel):
+        # Use the generic users function
+        return self.users(channel, 'mlist')
+
     def say(self, channel, message):
 
         # Send the say command, we don't care about the response
         self._command('say %s %s' % (channel, message))
 
-    def users(self, channel):
-            
+    def olist(self, channel):
+        # Use the generic users function
+        return self.users(channel, 'olist')
+
+    def plist(self, channel):
+        # Use the generic users function
+        return self.users(channel, 'plist')
+
+    def users(self, channel, list_type = 'users'):
+
         # List to put users in
         users = []
-        
-        # Get the userlist data        
-        response = self._command('users %s' % channel)
-        
+
+        # Get the userlist data
+        response = self._command('%s %s' % (list_type, channel))
+
         # Loop through the response from the 2nd line
         for line in response['data'][2:]:
 
@@ -260,10 +276,15 @@ class ChanServ():
                               'status': parts[len(parts) - 1]})
         return users
 
+    def wlist(self, channel):
+        # Use the generic users function
+        return self.users(channel, 'wlist')
+
+
 class OpServ():
 
     def __init__(self, srvx):
-        if isinstance(srvx, SrvX):    
+        if isinstance(srvx, SrvX):
             self.srvx = srvx
         else:
             raise InvalidSrvXObject
@@ -278,13 +299,13 @@ class AuthServAuthenticationFailure(Exception):
 
 class QServerAuthenticationFailure(Exception):
     pass
-    
+
 class InvalidSrvXObject(Exception):
     pass
-    
+
 class SrvXNotAuthenticated(Exception):
     pass
-    
+
 # If run via the command line
 if __name__ == '__main__':
     import optparse
@@ -330,7 +351,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
 
     if len(args) >= 2:
-    
+
         # Intialize srvx
         srvx = SrvX(options.ipaddr, options.port, options.password, auth[0], auth[1])
 
@@ -343,11 +364,11 @@ if __name__ == '__main__':
             obj = ChanServ(srvx)
         elif class_name == 'opserv':
             obj = OpServ(srvx)
-        
-        # Get the function handle        
+
+        # Get the function handle
         function = getattr(obj, function_name)
-        
-        logging.debug('Calling %s.%s' % (class_name, function_name))  
+
+        logging.debug('Calling %s.%s' % (class_name, function_name))
 
         # Call the object function
         if len(args) == 3:
