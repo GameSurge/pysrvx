@@ -70,6 +70,7 @@ class SrvX():
 
         logging.debug('Closing connection to QServer')
         connection.close()
+        connection = None
 
     def generate_token(self):
 
@@ -108,7 +109,9 @@ class SrvX():
                     # We did not auth with QServer Successfully
                     if response_code == 'X':
                         command_length += len(line)
-                        self.disconnect()
+                        logging.error('QServer Authentication Failure')
+                        connection.close()
+                        connection = None
                         raise QServerAuthenticationFailure()
 
                     elif response_code == 'S':
