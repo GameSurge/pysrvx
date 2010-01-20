@@ -505,9 +505,9 @@ class OpServ():
                      'setter': matches.group(5),
                      'expires': matches.group(6),
                      'reason': matches.group(7)}
-            trusts.append(trust);
+            trusts.append(trust)
 
-        return trusts;
+        return trusts
 
 
 # Exceptions
@@ -556,13 +556,13 @@ if __name__ == '__main__':
     # Make sure they passed in the password and auth string
     if not options.password or not options.auth:
         print 'Error: missing required parameters'
-        parser.print_help();
+        parser.print_help()
 
     # Make sure the auth string is in foo:bar format
     auth = options.auth.split(':')
     if len(auth) < 2:
         print 'Error: invalid authserv credentials'
-        parser.print_help();
+        parser.print_help()
 
     # Turn on debug logging
     logging.basicConfig(level=logging.INFO)
