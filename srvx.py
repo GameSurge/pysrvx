@@ -459,6 +459,30 @@ class OpServ():
 
         return info
 
+    def csearch_count(self, criteria):
+
+        # Get the number of matching channels
+        response = self._command("csearch count %s" % criteria)
+        if response['data'][0] == 'Nothing matched the criteria of your search.':
+            return 0
+
+        return int(response['data'][0].split(' ')[1])
+
+    def csearch_print(self, criteria):
+
+        # Get the matching channels
+        channels = {}
+        response = self._command("csearch print %s" % criteria)
+
+        if response['data'][0] == 'Nothing matched the criteria of your search.':
+            return channels
+
+        for line in response['data'][1:-1]:
+            parts = line.split(' ', 1)
+            channels[parts[0]] = parts[1]
+
+        return channels
+
     def deltrust(self, ip):
 
         # Remove a trusted host
