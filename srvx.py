@@ -151,8 +151,8 @@ class SrvX():
                 response['from'] = parts[0]
 
             content = line[line.find(':') + 1:]
-            if len(content.strip()):
-                response['data'].append(content.strip())
+            if len(content.rstrip()):
+                response['data'].append(content.rstrip())
 
         # Return the response
         return response
@@ -373,6 +373,91 @@ class OpServ():
         # Add a trusted host
         response = self._command("addtrust %s %i %s %s" % (ip, int(count), duration, reason))
         return response['data'][0][0:5] == 'Added'
+
+    def chaninfo(self, channel):
+
+        # Send our command to OpServ; always request full userlist
+        response = self._command('chaninfo %s users' % channel)
+
+        # Build the initial dictionary
+        info = {'channel': response['data'][0].split(' ')[0]}
+        bans = []
+        users = []
+
+        # States: 0 = info, 1 = bans, 2 = users
+        state = 0
+        # Loop through the remaining lines and build a dictionary of values
+        for line in response['data'][1:]:
+            if line[0:4] == 'Bans':
+                state = 1
+            elif line[0:5] == 'Users':
+                state = 2
+            elif state == 0: # Information
+
+                if line[0:11] == 'Created on:': # Created on: .... (1234567890)
+                    info['created'] = int(line.split(' (')[1][0:-1])
+
+                elif line[0:6] == 'Modes:': # Modes: [+modes][; bad-word channel]
+                    matches = re.match(r"^Modes: (?:(\+[a-zA-Z]+)((?: \S+?)*))?(; bad-word channel)?$", line)
+                    if matches is None:
+                        logging.debug('Unexpected mode line: "%s"' % line)
+                        continue
+
+                    info['badword'] = matches.group(3) is not None
+                    info['modes'] = matches.group(1) and matches.group(1)[1:] or ""
+                    info['key'] = None
+                    info['limit'] = None
+                    if info['modes']:
+                        mode_args = matches.group(2).strip().split(' ')
+                        arg = 0
+                        for mode in info['modes']:
+                            if mode == 'l':
+                                info['limit'] = int(mode_args.pop(0))
+                            elif mode == 'k':
+                                info['key'] = mode_args.pop(0)
+
+                elif line[0:5] == 'Topic': # Topic (set by [...], Tue Jan 19 06:27:40 2010): [...]
+                    matches = re.match(r"^Topic \(set by ([^,]*), ([^)]+)\): (.*)$", line)
+                    if matches is None:
+                        continue
+                    info['topic_by'] = matches.group(1)
+                    info['topic_time'] = matches.group(2)
+                    info['topic'] = matches.group(3)
+                else:
+                    logging.debug('Unexpected line: "%s"' % line)
+
+            elif state == 1: # Bans
+
+                matches = re.match(r"^(\S+) by (\S+) \(([^)]+)\)$", line)
+                if matches is None:
+                    logging.debug('Unexpected ban line: "%s"' % line)
+                    continue
+
+                ban = {'mask': matches.group(1),
+                       'by': matches.group(2),
+                       'time': matches.group(3)}
+                bans.append(ban)
+
+            elif state == 2: # Users
+
+                matches = re.match(r"^ ([@+ ])([^:]+)(?::([0-9]+))? \(([^@]+)@([^)]+)\)$", line)
+                if matches is None:
+                    logging.debug('Unexpected user line: "%s"' % line)
+                    continue
+
+                user = {'nick': matches.group(2),
+                        'ident': matches.group(4),
+                        'host': matches.group(5),
+                        'op': matches.group(1) == '@',
+                        'voice': matches.group(1) == '+',
+                        'oplevel': matches.group(3) and int(matches.group(3))}
+
+                users.append(user)
+
+        info['bans'] = bans
+        info['users'] = users
+
+        return info
 
     def deltrust(self, ip):
 
