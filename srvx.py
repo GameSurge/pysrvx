@@ -372,12 +372,15 @@ class OpServ():
 
         # Add a trusted host
         response = self._command("addtrust %s %i %s %s" % (ip, int(count), duration, reason))
-        return response['data'][0][0:5] == 'Added'
+        return response['data'][0][0:5] == 'Added', response['data'][0]
 
     def chaninfo(self, channel):
 
         # Send our command to OpServ; always request full userlist
         response = self._command('chaninfo %s users' % channel)
+
+        if response['data'][0] == 'You must provide the name of a channel that exists.':
+            return None
 
         # Build the initial dictionary
         info = {'channel': response['data'][0].split(' ')[0]}
@@ -495,9 +498,14 @@ class OpServ():
         trusts = []
         response = self._command("stats trusted %s" % (ip or ""))
 
+        # List of trusted hosts:
         # 192.168.2.1 (limit 10; set 2 minutes and 41 seconds ago by cltx; expires 23 hours and 57 minutes: test bla)
         # 192.168.2.2 (no limit; set 2 minutes and 40 seconds ago by cltx; expires never: test bla)
-        for line in response['data'][1:]:
+        begin = 1
+        if ip is not None: # "List of trusted hosts:" is only shown if not ip is given
+            begin = 0
+
+        for line in response['data'][begin:]:
             matches = re.match(r"^(\S+) \((limit (\d+)|no limit); set ([a-z0-9 ]+) ago by (\S+); expires ([^:]+): (.+)\)$", line)
             trust = {'ip': matches.group(1),
                      'limit': matches.group(2) != "no limit" and int(matches.group(3)) or 0,
@@ -506,6 +514,10 @@ class OpServ():
                      'expires': matches.group(6),
                      'reason': matches.group(7)}
             trusts.append(trust)
+
+        # We checked a specific ip
+        if ip:
+            return len(trusts) and trusts[0] or None
 
         return trusts
 
