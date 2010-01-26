@@ -246,7 +246,7 @@ class ChanServ():
         c4 = response['data'][0].find('Reason')
 
         # Loop through the response from the 2nd line
-        for line in response['data'][2:len(response['data']) - 1]:
+        for line in response['data'][1:len(response['data']) - 1]:
 
             # Append the dictionary for the row to the ban list
             bans.append({'mask': line[c1:c2].strip(),
@@ -321,7 +321,7 @@ class ChanServ():
         c3 = response['data'][1].find('Last Seen')
         c4 = response['data'][1].find('Status')
 
-        # Loop through the response from the 2nd line
+        # Loop through the response from the 3rd line
         for line in response['data'][2:len(response['data'])]:
 
             if line[0:4] != 'None':
