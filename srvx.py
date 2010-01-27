@@ -226,7 +226,7 @@ class AuthServ():
                 'hostmasks': [],
                 'channels': {},
                 'dnr': None,
-                'epithet': "",
+                'epithet': None,
                 'fakeident': None,
                 'fakehost': None,
                 'cookie' : None}
@@ -252,7 +252,7 @@ class AuthServ():
                     info['seen'] = (value != 'Right now!') and value or 0
 
                 elif key == 'Infoline':
-                    info['infoline'] = (value != 'None') and value or ""
+                    info['infoline'] = (value != 'None') and value or None
 
                 elif key == 'Karma':
                     info['karma'] = int(value)
@@ -267,13 +267,13 @@ class AuthServ():
                     pass
 
                 elif key == 'Flags':
-                    info['flags'] = (value[0] == '+') and value[1:] or ""
+                    info['flags'] = (value[0] == '+') and value[1:] or ''
 
                 elif key == 'Last quit hostmask':
                     info['lqh'] = (value != 'Unknown') and value or None
 
                 elif key == 'Epithet':
-                    info['epithet'] = (value != 'None') and value or ""
+                    info['epithet'] = (value != 'None') and value or None
 
                 elif key == 'Fake ident':
                     info['fakeident'] = value
@@ -528,7 +528,7 @@ class OpServ():
                         continue
 
                     info['badword'] = matches.group(3) is not None
-                    info['modes'] = matches.group(1) and matches.group(1)[1:] or ""
+                    info['modes'] = matches.group(1) and matches.group(1)[1:] or ''
                     info['key'] = None
                     info['limit'] = None
                     if info['modes']:
@@ -617,7 +617,7 @@ class OpServ():
 
         # Get a list of trusted hosts
         trusts = []
-        response = self._command("stats trusted %s" % (ip or ""))
+        response = self._command("stats trusted %s" % (ip or ''))
 
         if ip and response['data'][0].split(' ', 1)[1] == 'does not have a special trust.':
             return None
