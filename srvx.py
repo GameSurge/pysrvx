@@ -171,6 +171,10 @@ class SrvX():
 
         global connection
 
+        # Check for command injection
+        if command.find('\n') != -1 or command.find('\r') != -1:
+            raise QServerSecurityViolation
+
         # Get our token
         self.token = self.generate_token()
 
@@ -658,6 +662,9 @@ class InvalidSrvXObject(Exception):
     pass
 
 class SrvXNotAuthenticated(Exception):
+    pass
+
+class QServerSecurityViolation(Exception):
     pass
 
 # If run via the command line
