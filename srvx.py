@@ -209,6 +209,127 @@ class AuthServ():
         # Run the command in the srvx object
         return self.srvx._send_command('authserv %s' % command)
 
+    def accountinfo(self, account):
+
+        # Retrieve account info
+        response = self._command('accountinfo *%s' % account)
+
+        # Bail out if account does not exist
+        if response['data'][0].split(' ')[3] == 'not':
+            return None
+
+        # Get account name "Account information for NAME:"
+        info = {'account': response['data'][0].split(' ')[3][0:-1],
+                'vacation': False,
+                'notes': [],
+                'nicks': [],
+                'hostmasks': [],
+                'channels': {},
+                'dnr': None,
+                'epithet': "",
+                'fakeident': None,
+                'fakehost': None,
+                'cookie' : None}
+
+        # Loop over actual account information
+        for line in response['data'][1:]:
+            parts = line.split(':', 1)
+            if len(parts) < 2:
+                if parts[0].strip() == 'On vacation.':
+                    info['vacation'] = True
+                else:
+                    logging.error('Odd accountinfo response: %s' % line)
+                continue
+
+            else:
+                key = parts[0].strip()
+                value = parts[1].strip()
+
+                if key == 'Registered on':
+                    info['registered'] = value
+
+                elif key == 'Last seen':
+                    info['seen'] = (value != 'Right now!') and value or 0
+
+                elif key == 'Infoline':
+                    info['infoline'] = (value != 'None') and value or ""
+
+                elif key == 'Karma':
+                    info['karma'] = int(value)
+
+                elif key == 'Email address':
+                    info['email'] = (value != 'Not set.') and value or None
+
+                elif key == 'Account ID':
+                    info['id'] = int(value)
+
+                elif key == 'Notes' and value == 'None':
+                    pass
+
+                elif key == 'Flags':
+                    info['flags'] = (value[0] == '+') and value[1:] or ""
+
+                elif key == 'Last quit hostmask':
+                    info['lqh'] = (value != 'Unknown') and value or None
+
+                elif key == 'Epithet':
+                    info['epithet'] = (value != 'None') and value or ""
+
+                elif key == 'Fake ident':
+                    info['fakeident'] = value
+
+                elif key == 'Fake host':
+                    parts = value.rsplit('@', 1)
+                    if len(parts) == 1:
+                        info['fakehost'] = parts[0]
+                    else:
+                        info['fakeident'] = parts[0]
+                        info['fakehost'] = parts[1]
+
+                elif key == 'Hostmask(s)':
+                    if value != 'None':
+                        info['hostmasks'] += value.split(' ')
+
+                elif key == 'Channel(s)':
+                    if value != 'None':
+                        channels = value.split(' ')
+                        for channel in channels:
+                            access, name = channel.split(':')
+                            info['channels'][name] = int(access)
+
+                elif key == 'Current nickname(s)':
+                    info['nicks'] += value.split(' ')
+
+                elif key == 'Cookie':
+                    matches = re.match(r"There is currently an? ([a-z ]+) cookie issued", value)
+                    if matches is None:
+                        logging.debug('Unexpected cookie line: "%s"' % line)
+                        continue
+
+                    info['cookie'] = matches.group(1)
+
+                elif key[0:5] == 'Note ':
+                    matches = re.match(r"^Note ([0-9]+) \(([a-z0-9 ]+) ago by ([^,]+)(?:, expires ([^)]+))?\)$", key)
+                    if matches is None:
+                        logging.debug('Unexpected note line: "%s"' % line)
+                        continue
+
+                    note = {'id': int(matches.group(1)),
+                            'set_time': matches.group(2),
+                            'setter': matches.group(3),
+                            'expires': matches.group(4),
+                            'text': value}
+
+                    info['notes'].append(note)
+
+                elif key.startswith('Do-not-register'):
+                    info['dnr'] = value
+
+                else:
+                    logging.warning('Unknown accountinfo key: "%s" (%s)' % (key, value))
+
+        return info
+
     def checkemail(self, account, email):
 
         # Check if the account email is the given one
