@@ -346,6 +346,12 @@ class AuthServ():
         response = self._command('checkpass %s %s' % (account, password))
         return response['data'][0] == 'Yes.'
 
+    def oregister(self, account, password, email=None, mask=None):
+
+        # Register a new AuthServ account
+        response = self._command('oregister %s %s %s %s' % (account, password, mask and mask or '*', email and email or ""))
+        return response['data'][0] == 'Account has been registered.', response['data'][0]
+
 class ChanServ():
 
     def __init__(self, srvx):
