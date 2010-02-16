@@ -49,7 +49,7 @@ class SrvX():
             self.authenticate(auth_user, auth_password)
 
         else:
-
+            self.authenticated = True
             logging.debug('Re-using already authenticated and connected session')
 
     def authenticate(self, username, password):
@@ -84,12 +84,15 @@ class SrvX():
         data = ''
         command_length = 0
         response_done = False
+        command_output = False
 
         # Loop until the response is done
         while not response_done:
 
             # Append data from the socket into the global buffer
             self.response += connection.recv(32768)
+            if self.response[-1] != '\n':
+                continue
 
             # Split the content into a list
             lines = self.response.split('\n')
@@ -97,14 +100,14 @@ class SrvX():
             # Loop through each line in the list
             for line in lines:
 
+                parts = line.split(' ')
+                token = parts[0]
+
                 # If it finds the token
-                if line.find(self.token) > -1:
+                if token == self.token:
 
-                    logging.debug('Matched on token %s' % self.token)
-
-                    # Do an initial split to so we know our response code
-                    parts = line.split(' ')
                     response_code = parts[1]
+                    logging.debug('Matched on token %s; response code %s' % (self.token, response_code))
 
                     # We did not auth with QServer Successfully
                     if response_code == 'X':
@@ -117,24 +120,27 @@ class SrvX():
                     elif response_code == 'S':
                         logging.debug('Got a S packet, processing more')
                         command_length += len(line) + 1
+                        command_output = True
                         continue
 
                     elif response_code == 'E':
-
                         # We've reached the end of the response
                         logging.debug('Got a E packet, ending response')
                         command_length += len(line) + 1
                         response_done = True
+                        command_output = False
                         break
 
                     else:
-                        # Append the buffer
-                        logging.debug('Unexpected line: "%s"' % line)
+                        # We've got something with a token but an unknown response code
+                        logging.warning('Unexpected line: "%s"' % line)
                         command_length += len(line) + 1
-                        data += '%s\n' % line
-                else:
+                elif command_output:
                     command_length += len(line) + 1
                     data += '%s\n' % line
+                else:
+                    logging.warning('Unexpected line: "%s"' % line)
+                    command_length += len(line) + 1
 
 
         # Remove our command from the response buffer
