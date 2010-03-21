@@ -304,7 +304,7 @@ class AuthServ():
                     if value != 'None':
                         channels = value.split(' ')
                         for channel in channels:
-                            access, name = channel.split(':')
+                            access, name = channel.split(':', 1)
                             info['channels'][name] = int(access)
 
                 elif key == 'Current nickname(s)':
