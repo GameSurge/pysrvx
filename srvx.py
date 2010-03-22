@@ -107,7 +107,7 @@ class SrvX():
                 if token == self.token:
 
                     response_code = parts[1]
-                    logging.debug('Matched on token %s; response code %s' % (self.token, response_code))
+                    #logging.debug('Matched on token %s; response code %s' % (self.token, response_code))
 
                     # We did not auth with QServer Successfully
                     if response_code == 'X':
@@ -118,14 +118,14 @@ class SrvX():
                         raise QServerAuthenticationFailure()
 
                     elif response_code == 'S':
-                        logging.debug('Got a S packet, processing more')
+                        #logging.debug('Got a S packet, processing more')
                         command_length += len(line) + 1
                         command_output = True
                         continue
 
                     elif response_code == 'E':
                         # We've reached the end of the response
-                        logging.debug('Got a E packet, ending response')
+                        #logging.debug('Got a E packet, ending response')
                         command_length += len(line) + 1
                         response_done = True
                         command_output = False
@@ -173,7 +173,7 @@ class SrvX():
             # Disable helping mode
             self._send_command('chanserv god off')
 
-    def _send_command(self, command, no_response = False):
+    def _send_command(self, command, no_response = False, hide_arg=None):
 
         global connection
 
@@ -187,8 +187,15 @@ class SrvX():
         # Put a token infront of the command
         command = '%s %s\n' % (self.token, command)
 
+	if hide_arg is not None:
+		# TOKEN NICK COMMAND ARGS...
+		tmp = command.strip().split(' ')
+		tmp[hide_arg + 2] = '****'
+		logging.debug('Sending: %s' % ' '.join(tmp))
+	else:
+	        logging.debug('Sending: %s' % command.strip())
+
         # Send the command
-        logging.debug('Sending: %s' % command.strip())
         connection.send(command)
 
         # return the response
@@ -214,10 +221,10 @@ class AuthServ():
         else:
             raise InvalidSrvXObject
 
-    def _command(self, command):
+    def _command(self, command, hide_arg=None):
 
         # Run the command in the srvx object
-        return self.srvx._send_command('authserv %s' % command)
+        return self.srvx._send_command('authserv %s' % command, hide_arg=hide_arg)
 
     def accountinfo(self, account):
 
@@ -349,13 +356,13 @@ class AuthServ():
     def checkpass(self, account, password):
 
         # Check to see if the account and password are valid in returning bool
-        response = self._command('checkpass %s %s' % (account, password))
+        response = self._command('checkpass %s %s' % (account, password), hide_arg=2)
         return response['data'][0] == 'Yes.'
 
     def oregister(self, account, password, email=None, mask=None):
 
         # Register a new AuthServ account
-        response = self._command('oregister %s %s %s %s' % (account, password, mask and mask or '*', email and email or ""))
+        response = self._command('oregister %s %s %s %s' % (account, password, mask and mask or '*', email and email or ""), hide_arg=2)
         return response['data'][0] == 'Account has been registered.', response['data'][0]
 
 class ChanServ():
