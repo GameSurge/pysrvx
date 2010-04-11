@@ -377,6 +377,31 @@ class AuthServ():
         response = self._command('rename *%s %s' % (account, newaccount))
         return response['data'][0].find('account name has been changed') != -1 , response['data'][0]
 
+    def search_count(self, criteria):
+
+        # Get the number of matching users
+        response = self._command("search count %s" % criteria)
+        if response['data'][0] == 'Nothing matched the criteria of your search.':
+            return 0
+
+        return int(response['data'][0].split(' ')[1])
+
+    def search_print(self, criteria):
+
+        # Get the matching users
+        users = []
+        response = self._command("search print %s" % criteria)
+
+        if response['data'][0] == 'Nothing matched the criteria of your search.':
+            return users
+
+        for line in response['data'][1:-1]:
+            parts = line.split(' ', 1)
+            users.append(parts[1])
+
+        return users
+
+
 class ChanServ():
 
     def __init__(self, srvx):
