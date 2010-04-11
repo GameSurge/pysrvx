@@ -365,6 +365,12 @@ class AuthServ():
         response = self._command('oregister %s %s %s %s' % (account, password, mask and mask or '*', email and email or ""), hide_arg=2)
         return response['data'][0] == 'Account has been registered.', response['data'][0]
 
+    def ounregister (self, account, force=False):
+
+        # Remove an Account from the network
+        response = self._command('ounregister *%s %s' % (account, force and 'FORCE' or ""))
+        return response['data'][0].find('been unregistered.') != -1 , response['data'][0]
+
 class ChanServ():
 
     def __init__(self, srvx):
