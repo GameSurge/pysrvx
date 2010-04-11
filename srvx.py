@@ -371,6 +371,12 @@ class AuthServ():
         response = self._command('ounregister *%s %s' % (account, force and 'FORCE' or ""))
         return response['data'][0].find('been unregistered.') != -1 , response['data'][0]
 
+    def rename (self, account, newaccount):
+
+        # Rename Account
+        response = self._command('rename *%s %s' % (account, newaccount))
+        return response['data'][0].find('account name has been changed') != -1 , response['data'][0]
+
 class ChanServ():
 
     def __init__(self, srvx):
