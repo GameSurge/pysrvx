@@ -433,32 +433,32 @@ class ChanServ():
                 access = access * -1
         return access, response['data']
 
-    def addcoowner(self, channel, account, force = False):
+    def addcoowner(self, channel, account, force=False):
 
         # Use the gegenric adduser function
         return self.adduser(channel, account, 'coowner', force)
 
-    def addmaster(self, channel, account, force = False):
+    def addmaster(self, channel, account, force=False):
 
         # Use the gegenric adduser function
         return self.adduser(channel, account, 'master', force)
 
-    def addaddop(self, channel, account, force = False):
+    def addaddop(self, channel, account, force=False):
 
         # Use the gegenric adduser function
         return self.adduser(channel, account, 'op', force)
 
-    def addowner(self, channel, account, force = False):
+    def addowner(self, channel, account, force=False):
 
         # Use the gegenric adduser function
         return self.adduser(channel, account, 'owner', force)
 
-    def addpeon(self, channel, account, force = False):
+    def addpeon(self, channel, account, force=False):
 
         # Use the gegenric adduser function
         return self.adduser(channel, account, 'peon', force)
 
-    def adduser(self, channel, account, level, force = False):
+    def adduser(self, channel, account, level, force=False):
 
         # Run adduser, if the user has already access and force is true we clvl him
         response = self._command('adduser %s *%s %s' % (channel, account, level))
@@ -533,7 +533,7 @@ class ChanServ():
 
         return response['data'][0].find('has been restored.') != -1 , response['data'][0]
 
-    def deluser(self, channel, account, level = ""):
+    def deluser(self, channel, account, level=""):
 
         # Send our command to ChanServ,
         #   if level is specified and > 0, deluser will check for the level
@@ -595,7 +595,7 @@ class ChanServ():
         if response['data'][0] == "Nothing matched the criteria of your search.":
             return 0
 
-        parts = response['data'][0].split (' ')
+        parts = response['data'][0].split(' ')
         return int(parts[1])
 
     def dnrsearch_print(self, criteria):
@@ -604,7 +604,7 @@ class ChanServ():
         response = self._command('dnrsearch print %s' % (criteria))
 
         # Parse it
-        return self._dnrsearch_parse (response)
+        return self._dnrsearch_parse(response)
 
     def info(self, channel):
 
@@ -636,7 +636,7 @@ class ChanServ():
         # Use dnrsearch
         return self.dnrsearch_count('channel *')
 
-    def noregister(self, channel = ""):
+    def noregister(self, channel=""):
 
         # Send our command to ChanServ
         response = self._command('noregister %s' % (channel))
