@@ -187,13 +187,13 @@ class SrvX():
         # Put a token infront of the command
         command = '%s %s\n' % (self.token, command)
 
-	if hide_arg is not None:
-		# TOKEN NICK COMMAND ARGS...
-		tmp = command.strip().split(' ')
-		tmp[hide_arg + 2] = '****'
-		logging.debug('Sending: %s' % ' '.join(tmp))
-	else:
-	        logging.debug('Sending: %s' % command.strip())
+    if hide_arg is not None:
+        # TOKEN NICK COMMAND ARGS...
+        tmp = command.strip().split(' ')
+        tmp[hide_arg + 2] = '****'
+        logging.debug('Sending: %s' % ' '.join(tmp))
+    else:
+            logging.debug('Sending: %s' % command.strip())
 
         # Send the command
         connection.send(command)
@@ -411,6 +411,27 @@ class ChanServ():
             self.srvx = srvx
         else:
             raise InvalidSrvXObject
+
+    def access (self, channel, account):
+
+        # Access of an account in a channel
+        response = self._command('access %s *%s' % (channel, account))
+
+        if response['data'][0] == 'You must provide the name of a channel that exists.':
+            return 0, response['data'][0]
+
+        if response['data'][0].find('has not been registered.') != -1:
+            return 0, response['data'][0]
+
+        # Find the line with the access (if lacks its 0)
+        access = 0
+        for line in response['data']:
+            if line.find('has access') != -1:
+                parts = line.split(' ')
+                access = int(parts[3])
+            if line.find('has been suspended.') != -1:
+                access = access * -1
+        return access, response['data']
 
     def bans(self, channel):
 
