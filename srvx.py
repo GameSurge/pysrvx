@@ -533,6 +533,23 @@ class ChanServ():
 
         return response['data'][0].find('has been restored.') != -1 , response['data'][0]
 
+    def deluser (self, channel, account, level = ""):
+
+        # Send our command to ChanServ,
+        #   if level is specified and > 0, deluser will check for the level
+        #   if level is specified and = 0, deluser will be also fine when user does not exist on the userlist
+        #   if level isn't specified or < 0, deluser will only return true if user was on the userlist
+
+        if not level or (level.isdigit() and int(level) <= 0):
+            response = self._command('deluser %s *%s' % (channel, account))
+        else:
+            response = self._command('deluser %s %s *%s' % (channel, level, account))
+
+        if level.isdigit() and int(level) == 0 and response['data'][0].find('lacks access to'):
+            return True , response['data'][0]
+
+        return response['data'][0].find('Deleted Faramir') != -1 , response['data'][0]
+
     def info(self, channel):
 
         # Send our command to ChanServ
