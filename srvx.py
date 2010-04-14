@@ -433,6 +433,41 @@ class ChanServ():
                 access = access * -1
         return access, response['data']
 
+    def addcoowner (self, channel, account, force = False):
+
+        # Use the gegenric adduser function
+        return self.adduser(channel, account, 'coowner', force)
+
+    def addmaster (self, channel, account, force = False):
+
+        # Use the gegenric adduser function
+        return self.adduser(channel, account, 'master', force)
+
+    def addaddop (self, channel, account, force = False):
+
+        # Use the gegenric adduser function
+        return self.adduser(channel, account, 'op', force)
+
+    def addowner (self, channel, account, force = False):
+
+        # Use the gegenric adduser function
+        return self.adduser(channel, account, 'owner', force)
+
+    def addpeon (self, channel, account, force = False):
+
+        # Use the gegenric adduser function
+        return self.adduser(channel, account, 'peon', force)
+
+    def adduser (self, channel, account, level, force = False):
+
+        # Run adduser, if the user has already access and force is true we clvl him
+        response = self._command('adduser %s *%s %s' % (channel, account, level))
+
+        if force and response['data'][0].find('is already on') != -1:
+            return self.clvl(channel, account, level)
+
+        return response['data'][0].find('Added') != -1 , response['data'][0]
+
     def bans(self, channel):
 
         # List to hold our bans
@@ -468,6 +503,16 @@ class ChanServ():
 
         # Use the generic users function
         return self.users(channel, 'clist')
+
+    def clvl (self, channel, account, level, force = False):
+
+        # Run clvl, if the user has no access and force is true we adduser him
+        response = self._command('clvl %s *%s %s' % (channel, account, level))
+
+        if force and response['data'][0].find('lacks access to') != -1:
+            return self.adduser(channel, account, level)
+
+        return response['data'][0].find('now has access') != -1 , response['data'][0]
 
     def info(self, channel):
 
