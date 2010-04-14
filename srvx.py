@@ -383,7 +383,10 @@ class AuthServ():
         response = self._command("search count %s" % criteria)
         if response['data'][0] == 'Nothing matched the criteria of your search.':
             return 0
-
+        elif response['data'][0].endswith('is an invalid search criteria.'):
+            return 0
+        elif response['data'][0].endswith('requires more parameters.'):
+            return 0
         return int(response['data'][0].split(' ')[1])
 
     def search_print(self, criteria):
@@ -393,7 +396,11 @@ class AuthServ():
         response = self._command("search print %s" % criteria)
 
         if response['data'][0] == 'Nothing matched the criteria of your search.':
-            return users
+            return []
+        elif response['data'][0].endswith('is an invalid search criteria.'):
+            return []
+        elif response['data'][0].endswith('requires more parameters.'):
+            return []
 
         for line in response['data'][1:-1]:
             parts = line.split(' ', 1)
