@@ -412,7 +412,7 @@ class ChanServ():
         else:
             raise InvalidSrvXObject
 
-    def access (self, channel, account):
+    def access(self, channel, account):
 
         # Access of an account in a channel
         response = self._command('access %s *%s' % (channel, account))
@@ -433,32 +433,32 @@ class ChanServ():
                 access = access * -1
         return access, response['data']
 
-    def addcoowner (self, channel, account, force = False):
+    def addcoowner(self, channel, account, force = False):
 
         # Use the gegenric adduser function
         return self.adduser(channel, account, 'coowner', force)
 
-    def addmaster (self, channel, account, force = False):
+    def addmaster(self, channel, account, force = False):
 
         # Use the gegenric adduser function
         return self.adduser(channel, account, 'master', force)
 
-    def addaddop (self, channel, account, force = False):
+    def addaddop(self, channel, account, force = False):
 
         # Use the gegenric adduser function
         return self.adduser(channel, account, 'op', force)
 
-    def addowner (self, channel, account, force = False):
+    def addowner(self, channel, account, force = False):
 
         # Use the gegenric adduser function
         return self.adduser(channel, account, 'owner', force)
 
-    def addpeon (self, channel, account, force = False):
+    def addpeon(self, channel, account, force = False):
 
         # Use the gegenric adduser function
         return self.adduser(channel, account, 'peon', force)
 
-    def adduser (self, channel, account, level, force = False):
+    def adduser(self, channel, account, level, force = False):
 
         # Run adduser, if the user has already access and force is true we clvl him
         response = self._command('adduser %s *%s %s' % (channel, account, level))
@@ -504,7 +504,7 @@ class ChanServ():
         # Use the generic users function
         return self.users(channel, 'clist')
 
-    def clvl (self, channel, account, level, force = False):
+    def clvl(self, channel, account, level, force = False):
 
         # Run clvl, if the user has no access and force is true we adduser him
         response = self._command('clvl %s *%s %s' % (channel, account, level))
@@ -514,7 +514,7 @@ class ChanServ():
 
         return response['data'][0].find('now has access') != -1 , response['data'][0]
 
-    def csuspend (self, channel, duration, reason, modify = False):
+    def csuspend(self, channel, duration, reason, modify = False):
 
         # Send our command to ChanServ depending on modify
         if modify:
@@ -526,14 +526,14 @@ class ChanServ():
 
         return response['data'][0].find('has been temporarily suspended.') != -1 , response['data'][0]
 
-    def cunsuspend (self, channel):
+    def cunsuspend(self, channel):
 
         # Send our command to ChanServ
         response = self._command('cunsuspend %s' % channel)
 
         return response['data'][0].find('has been restored.') != -1 , response['data'][0]
 
-    def deluser (self, channel, account, level = ""):
+    def deluser(self, channel, account, level = ""):
 
         # Send our command to ChanServ,
         #   if level is specified and > 0, deluser will check for the level
@@ -549,6 +549,62 @@ class ChanServ():
             return True , response['data'][0]
 
         return response['data'][0].find('Deleted Faramir') != -1 , response['data'][0]
+
+    def _dnrsearch_parse(self, response):
+
+        # Get a list of all do-not-register
+        dnrs = []
+
+        if response['data'][0] == 'The following do-not-registers were found:':
+            response['data'].pop(0) #Removes this line if its there
+
+        if response['data'][0] == 'Nothing matched the criteria of your search.':
+            return dnrs
+
+        matches = re.match(r"^Found \d+ matches.$", response['data'][len(response['data'])-1])
+        if matches is not None:
+            response['data'].pop() #Removes this line, too
+
+        # List of do-not-register:
+        # *testxyz is do-not-register (set 26 Feb 2007 by ThiefMaster): kiddie
+        # #xy*z is do-not-register (set 26 Feb 2007 by ThiefMaster): lalala that's just a test
+        # #m*rt*n is do-not-register (set 14 Apr 2010 by cltx; expires 21 Apr 2010): Very special test dnr
+        for line in response['data']:
+            matches = re.match(r"^((?:\*|\#)[^\s]+) is do-not-register \(set (\d+ \w{3} \d{4}) by ([^\s\;\)]+)(?:\; expires (\d+ \w{3} \d{4})){0,1}\)\:\s(.*)$", line)
+
+            if matches is None:
+                logging.debug('Unexpected dnr line: "%s"' % line)
+                continue
+
+            dnr = {'glob': matches.group(1),
+                     'set_time': matches.group(2),
+                     'setter': matches.group(3),
+                     'expires': matches.group(4),
+                     'reason': matches.group(5)}
+            dnrs.append(dnr)
+
+        # return dnr
+        return dnrs
+
+    def dnrsearch_count(self, criteria):
+
+        # Send our command to ChanServ
+        response = self._command('dnrsearch count %s' % (criteria))
+
+        # Parse it
+        if response['data'][0] == "Nothing matched the criteria of your search.":
+            return 0
+
+        parts = response['data'][0].split (' ')
+        return int(parts[1])
+
+    def dnrsearch_print(self, criteria):
+
+        # Send our command to ChanServ
+        response = self._command('dnrsearch print %s' % (criteria))
+
+        # Parse it
+        return self._dnrsearch_parse (response)
 
     def info(self, channel):
 
@@ -574,6 +630,19 @@ class ChanServ():
 
         # Use the generic users function
         return self.users(channel, 'mlist')
+
+    def noregister_count(self):
+
+        # Use dnrsearch
+        return self.dnrsearch_count('channel *')
+
+    def noregister(self, channel = ""):
+
+        # Send our command to ChanServ
+        response = self._command('noregister %s' % (channel))
+
+        # Parse it
+        return self._dnrsearch_parse (response)
 
     def say(self, channel, message):
 
