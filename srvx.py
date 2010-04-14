@@ -514,6 +514,25 @@ class ChanServ():
 
         return response['data'][0].find('now has access') != -1 , response['data'][0]
 
+    def csuspend (self, channel, duration, reason, modify = False):
+
+        # Send our command to ChanServ depending on modify
+        if modify:
+            response = self._command('csuspend %s !%s %s' % (channel, duration, reason))
+            if len(response['data']) == 0: #due of a bug?, a change of the duration won't be told us, so we check for emptiness
+                return True , ""
+        else:
+            response = self._command('csuspend %s %s %s' % (channel, duration, reason))
+
+        return response['data'][0].find('has been temporarily suspended.') != -1 , response['data'][0]
+
+    def cunsuspend (self, channel):
+
+        # Send our command to ChanServ
+        response = self._command('cunsuspend %s' % channel)
+
+        return response['data'][0].find('has been restored.') != -1 , response['data'][0]
+
     def info(self, channel):
 
         # Send our command to ChanServ
