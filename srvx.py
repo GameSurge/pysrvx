@@ -624,11 +624,6 @@ class ChanServ():
         # Use the generic users function
         return self.users(channel, 'mlist')
 
-    def noregister_count(self):
-
-        # Use dnrsearch
-        return self.dnrsearch_count('channel *')
-
     def noregister(self, channel=""):
 
         # Send our command to ChanServ
