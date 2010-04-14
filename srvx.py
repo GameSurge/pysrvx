@@ -837,6 +837,29 @@ class OpServ():
         response = self._command("deltrust %s" % ip)
         return response['data'][0] == 'Removed trusted hosts from the trusted-hosts list.'
 
+    def stats_email(self, email=None):
+
+        # Check if the given email is banned
+        if email:
+            response = self._command('stats email %s' % email)
+            # somebody@mailinator.com may not be used an email address: trash email
+            # somebody@gamesurge.net may be used as an email address.
+
+            if response['data'][0].endswith('may be used as an email address.'):
+                return None
+            return response['data'][0].split(': ', 1)[1]
+
+        # Get a list of all banned emails
+        response = self._command('stats email')
+        if response['data'][0] == 'All email addresses are accepted.':
+            return []
+
+        emails = {}
+        for line in response['data']:
+            parts = line.split(': ', 1)
+            emails[parts[0]] = parts[1]
+        return emails
+
     def stats_trusted(self, ip=None):
 
         # Get a list of trusted hosts
