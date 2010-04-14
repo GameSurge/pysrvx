@@ -562,7 +562,12 @@ class ChanServ():
         # #xy*z is do-not-register (set 26 Feb 2007 by ThiefMaster): lalala that's just a test
         # #m*rt*n is do-not-register (set 14 Apr 2010 by cltx; expires 21 Apr 2010): Very special test dnr
         # Found 3 matches.
-        for line in response['data'][1:-1]:
+
+        matches = re.match(r'^Found \d+ matches.$', response['data'][-1])
+        if matches is not None:
+            del response['data'][-1]
+
+        for line in response['data'][1:]:
             matches = re.match(r"^((?:\*|\#)[^\s]+) is do-not-register \(set (\d+ \w{3} \d{4}) by ([^\s\;\)]+)(?:\; expires (\d+ \w{3} \d{4})){0,1}\)\:\s(.*)$", line)
 
             if matches is None:
@@ -578,6 +583,14 @@ class ChanServ():
 
         # Return dnr list
         return dnrs
+
+    def dnr(self, channel=''):
+
+        # Send our command to ChanServ
+        response = self._command('noregister %s' % channel)
+
+        # Parse it
+        return self._dnrsearch_parse(response)
 
     def dnrsearch_count(self, criteria):
 
@@ -623,14 +636,6 @@ class ChanServ():
 
         # Use the generic users function
         return self.users(channel, 'mlist')
-
-    def noregister(self, channel=""):
-
-        # Send our command to ChanServ
-        response = self._command('noregister %s' % (channel))
-
-        # Parse it
-        return self._dnrsearch_parse (response)
 
     def say(self, channel, message):
 
