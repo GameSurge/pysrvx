@@ -193,7 +193,7 @@ class SrvX():
             tmp[hide_arg + 2] = '****'
             logging.debug('Sending: %s' % ' '.join(tmp))
         else:
-                logging.debug('Sending: %s' % command.strip())
+            logging.debug('Sending: %s' % command.strip())
 
         # Send the command
         connection.send(command)
@@ -365,17 +365,17 @@ class AuthServ():
         response = self._command('oregister %s %s %s %s' % (account, password, mask and mask or '*', email and email or ""), hide_arg=2)
         return response['data'][0] == 'Account has been registered.', response['data'][0]
 
-    def ounregister (self, account, force=False):
+    def ounregister(self, account, force=False):
 
         # Remove an Account from the network
         response = self._command('ounregister *%s %s' % (account, force and 'FORCE' or ""))
-        return response['data'][0].find('been unregistered.') != -1 , response['data'][0]
+        return response['data'][0].find('been unregistered.') != -1, response['data'][0]
 
-    def rename (self, account, newaccount):
+    def rename(self, account, newaccount):
 
         # Rename Account
         response = self._command('rename *%s %s' % (account, newaccount))
-        return response['data'][0].find('account name has been changed') != -1 , response['data'][0]
+        return response['data'][0].find('account name has been changed') != -1, response['data'][0]
 
     def search_count(self, criteria):
 
@@ -412,50 +412,54 @@ class ChanServ():
         else:
             raise InvalidSrvXObject
 
+    def _command(self, command):
+
+        # Send the command through srvx
+        return self.srvx.send_command('chanserv %s' % command)
+
     def access(self, channel, account):
 
         # Access of an account in a channel
         response = self._command('access %s *%s' % (channel, account))
 
         if response['data'][0] == 'You must provide the name of a channel that exists.':
-            return 0, response['data'][0]
+            return 0
 
         if response['data'][0].find('has not been registered.') != -1:
-            return 0, response['data'][0]
+            return 0
 
-        # Find the line with the access (if lacks its 0)
         access = 0
-        for line in response['data']:
-            if line.find('has access') != -1:
-                parts = line.split(' ')
-                access = int(parts[3])
-            if line.find('has been suspended.') != -1:
-                access = access * -1
-        return access, response['data']
+        if response['data'][0].startswith('%s has access ' % account):
+            parts = response['data'][0].split(' ')
+            access = int(parts[3])
+        # Negative access if user is suspended
+        if len(response['data']) > 1 and response['data'][-1].endswith('has been suspended.'):
+            access = access * -1
+        return access
 
     def addcoowner(self, channel, account, force=False):
 
-        # Use the gegenric adduser function
+        # Use the generic adduser function
         return self.adduser(channel, account, 'coowner', force)
 
     def addmaster(self, channel, account, force=False):
 
-        # Use the gegenric adduser function
+        # Use the generic adduser function
         return self.adduser(channel, account, 'master', force)
 
     def addaddop(self, channel, account, force=False):
 
-        # Use the gegenric adduser function
+        # Use the generic adduser function
         return self.adduser(channel, account, 'op', force)
 
     def addowner(self, channel, account, force=False):
 
-        # Use the gegenric adduser function
+        # Use the generic adduser function
         return self.adduser(channel, account, 'owner', force)
 
     def addpeon(self, channel, account, force=False):
 
-        # Use the gegenric adduser function
+        # Use the generic adduser function
         return self.adduser(channel, account, 'peon', force)
 
     def adduser(self, channel, account, level, force=False):
@@ -466,7 +470,7 @@ class ChanServ():
         if force and response['data'][0].find('is already on') != -1:
             return self.clvl(channel, account, level)
 
-        return response['data'][0].find('Added') != -1 , response['data'][0]
+        return response['data'][0].find('Added') != -1, response['data'][0]
 
     def bans(self, channel):
 
@@ -494,17 +498,12 @@ class ChanServ():
         # Remove the ban list dictionary
         return bans
 
-    def _command(self, command):
-
-        # Send the command through srvx
-        return self.srvx.send_command('chanserv %s' % command)
-
     def clist(self, channel):
 
         # Use the generic users function
         return self.users(channel, 'clist')
 
-    def clvl(self, channel, account, level, force = False):
+    def clvl(self, channel, account, level, force=False):
 
         # Run clvl, if the user has no access and force is true we adduser him
         response = self._command('clvl %s *%s %s' % (channel, account, level))
@@ -512,64 +511,58 @@ class ChanServ():
         if force and response['data'][0].find('lacks access to') != -1:
             return self.adduser(channel, account, level)
 
-        return response['data'][0].find('now has access') != -1 , response['data'][0]
+        return response['data'][0].find('now has access') != -1, response['data'][0]
 
-    def csuspend(self, channel, duration, reason, modify = False):
+    def csuspend(self, channel, duration, reason, modify=False):
 
-        # Send our command to ChanServ depending on modify
+        # Suspend channel or modify channel suspended
         if modify:
             response = self._command('csuspend %s !%s %s' % (channel, duration, reason))
-            if len(response['data']) == 0: #due of a bug?, a change of the duration won't be told us, so we check for emptiness
-                return True , ""
+            # When modifying a suspension srvx doesn't reply anything
+            if len(response['data']) == 0:
+                return True, ''
         else:
             response = self._command('csuspend %s %s %s' % (channel, duration, reason))
 
-        return response['data'][0].find('has been temporarily suspended.') != -1 , response['data'][0]
+        return response['data'][0].find('has been temporarily suspended.') != -1, response['data'][0]
 
     def cunsuspend(self, channel):
 
-        # Send our command to ChanServ
+        # Unsuspend channel
         response = self._command('cunsuspend %s' % channel)
 
-        return response['data'][0].find('has been restored.') != -1 , response['data'][0]
+        return response['data'][0].find('has been restored.') != -1, response['data'][0]
 
-    def deluser(self, channel, account, level=""):
+    def deluser(self, channel, account, level=None, strict=False):
 
-        # Send our command to ChanServ,
-        #   if level is specified and > 0, deluser will check for the level
-        #   if level is specified and = 0, deluser will be also fine when user does not exist on the userlist
-        #   if level isn't specified or < 0, deluser will only return true if user was on the userlist
+        # Delete user from channel user list
+        # If a level is given, the user must have exactly this level to be deleted
+        # If 'strict' is set, the deletion is only considered successful if the user was on the userlist before
 
-        if not level or (level.isdigit() and int(level) <= 0):
-            response = self._command('deluser %s *%s' % (channel, account))
-        else:
+        if level:
             response = self._command('deluser %s %s *%s' % (channel, level, account))
+        else:
+            response = self._command('deluser %s *%s' % (channel, account))
 
-        if level.isdigit() and int(level) == 0 and response['data'][0].find('lacks access to'):
-            return True , response['data'][0]
+        if not strict and response['data'][0].find('lacks access to') != -1:
+            return True, response['data'][0]
 
-        return response['data'][0].find('Deleted Faramir') != -1 , response['data'][0]
+        return response['data'][0].startswith('Deleted '), response['data'][0]
 
     def _dnrsearch_parse(self, response):
 
-        # Get a list of all do-not-register
+        # Get a list of all do-not-registers
         dnrs = []
 
-        if response['data'][0] == 'The following do-not-registers were found:':
-            response['data'].pop(0) #Removes this line if its there
-
-        if response['data'][0] == 'Nothing matched the criteria of your search.':
+        if response['data'][-1] == 'Nothing matched the criteria of your search.':
             return dnrs
 
-        matches = re.match(r"^Found \d+ matches.$", response['data'][len(response['data'])-1])
-        if matches is not None:
-            response['data'].pop() #Removes this line, too
-
-        # List of do-not-register:
+        # The following do-not-registers were found:
         # *testxyz is do-not-register (set 26 Feb 2007 by ThiefMaster): kiddie
         # #xy*z is do-not-register (set 26 Feb 2007 by ThiefMaster): lalala that's just a test
         # #m*rt*n is do-not-register (set 14 Apr 2010 by cltx; expires 21 Apr 2010): Very special test dnr
-        for line in response['data']:
+        # Found 3 matches.
+        for line in response['data'][1:-1]:
             matches = re.match(r"^((?:\*|\#)[^\s]+) is do-not-register \(set (\d+ \w{3} \d{4}) by ([^\s\;\)]+)(?:\; expires (\d+ \w{3} \d{4})){0,1}\)\:\s(.*)$", line)
 
             if matches is None:
@@ -577,19 +570,19 @@ class ChanServ():
                 continue
 
             dnr = {'glob': matches.group(1),
-                     'set_time': matches.group(2),
-                     'setter': matches.group(3),
-                     'expires': matches.group(4),
-                     'reason': matches.group(5)}
+                   'set_time': matches.group(2),
+                   'setter': matches.group(3),
+                   'expires': matches.group(4),
+                   'reason': matches.group(5)}
             dnrs.append(dnr)
 
-        # return dnr
+        # Return dnr list
         return dnrs
 
     def dnrsearch_count(self, criteria):
 
         # Send our command to ChanServ
-        response = self._command('dnrsearch count %s' % (criteria))
+        response = self._command('dnrsearch count %s' % criteria)
 
         # Parse it
         if response['data'][0] == "Nothing matched the criteria of your search.":
@@ -601,7 +594,7 @@ class ChanServ():
     def dnrsearch_print(self, criteria):
 
         # Send our command to ChanServ
-        response = self._command('dnrsearch print %s' % (criteria))
+        response = self._command('dnrsearch print %s' % criteria)
 
         # Parse it
         return self._dnrsearch_parse(response)
