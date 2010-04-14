@@ -187,13 +187,13 @@ class SrvX():
         # Put a token infront of the command
         command = '%s %s\n' % (self.token, command)
 
-    if hide_arg is not None:
-        # TOKEN NICK COMMAND ARGS...
-        tmp = command.strip().split(' ')
-        tmp[hide_arg + 2] = '****'
-        logging.debug('Sending: %s' % ' '.join(tmp))
-    else:
-            logging.debug('Sending: %s' % command.strip())
+        if hide_arg is not None:
+            # TOKEN NICK COMMAND ARGS...
+            tmp = command.strip().split(' ')
+            tmp[hide_arg + 2] = '****'
+            logging.debug('Sending: %s' % ' '.join(tmp))
+        else:
+                logging.debug('Sending: %s' % command.strip())
 
         # Send the command
         connection.send(command)
