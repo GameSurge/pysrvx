@@ -612,6 +612,24 @@ class ChanServ():
         # Parse it
         return self._dnrsearch_parse(response)
 
+    def dnrsearch_remove(self, criteria):
+
+        # Send our command to ChanServ
+        response = self._command('dnrsearch count %s' % criteria)
+
+        # Parse it
+        if response['data'][0] == "Nothing matched the criteria of your search.":
+            return 0
+
+        parts = response['data'][-1].split(' ')
+        return int(parts[1])
+
+    def giveownership(self, channel, account, force=False):
+
+        # Chanegs Ownership of a channel
+        response = self._command('giveownership %s *%s %s' % (channel, account, force and 'FORCE' or ""))
+        return response['data'][0].find('Ownership of %s has been transferred' % channel) != -1, response['data'][0]
+
     def info(self, channel):
 
         # Send our command to ChanServ
@@ -636,6 +654,13 @@ class ChanServ():
 
         # Use the generic users function
         return self.users(channel, 'mlist')
+
+    def mode(self, channel, modes):
+
+        # Set mode of channel
+        response = self._command('mode %s %s' % (channel, modes))
+
+        return response['data'][0].startswith('Channel modes are now')
 
     def say(self, channel, message):
 
