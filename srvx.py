@@ -612,6 +612,18 @@ class ChanServ():
         # Parse it
         return self._dnrsearch_parse(response)
 
+    def dnrsearch_remove(self, criteria):
+
+        # Send our command to ChanServ
+        response = self._command('dnrsearch count %s' % criteria)
+
+        # Parse it
+        if response['data'][0] == "Nothing matched the criteria of your search.":
+            return 0
+
+        parts = response['data'][-1].split(' ')
+        return int(parts[1])
+
     def info(self, channel):
 
         # Send our command to ChanServ
