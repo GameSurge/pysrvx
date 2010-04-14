@@ -649,6 +649,13 @@ class ChanServ():
         # Use the generic users function
         return self.users(channel, 'mlist')
 
+    def mode(self, channel, modes):
+
+        # Set mode of channel
+        response = self._command('mode %s %s' % (channel, modes))
+
+        return response['data'][0].startswith('Channel modes are now')
+
     def say(self, channel, message):
 
         # Send the say command, we don't care about the response
