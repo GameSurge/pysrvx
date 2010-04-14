@@ -624,6 +624,12 @@ class ChanServ():
         parts = response['data'][-1].split(' ')
         return int(parts[1])
 
+    def giveownership(self, channel, account, force=False):
+
+        # Chanegs Ownership of a channel
+        response = self._command('giveownership %s *%s %s' % (channel, account, force and 'FORCE' or ""))
+        return response['data'][0].find('Ownership of %s has been transferred' % channel) != -1, response['data'][0]
+
     def info(self, channel):
 
         # Send our command to ChanServ
