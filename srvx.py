@@ -173,7 +173,7 @@ class SrvX():
             # Disable helping mode
             self._send_command('chanserv god off')
 
-    def _send_command(self, command, no_response = False, hide_arg=None):
+    def _send_command(self, command, no_response=False, hide_arg=None):
 
         global connection
 
@@ -652,7 +652,7 @@ class ChanServ():
         # Use the generic users function
         return self.users(channel, 'plist')
 
-    def users(self, channel, list_type = 'users'):
+    def users(self, channel, list_type='users'):
 
         # List to put users in
         users = []
