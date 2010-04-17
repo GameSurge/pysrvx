@@ -372,7 +372,7 @@ class AuthServ():
             return (False, '%s not in key list' % key)
 
         # Oset some things or grab them or grab them all
-        if key.lower() == 'password' and value:
+        if key and key.lower() == 'password' and value:
             response = self._command('oset *%s %s %s' % (account, key and key or "", value and value or ""), hide_arg=2)
         else:
             response = self._command('oset *%s %s %s' % (account, key and key or "", value and value or ""))
@@ -387,10 +387,10 @@ class AuthServ():
             return (False, response['data'][0])
 
         if response['data'][0] == 'AuthServ account settings:':
-            sets = []
+            sets = {}
             for line in response['data'][1:]:
                 c2 = line.find(':')
-                sets.append([line[0:c2],line[c2+1:].strip()])
+                sets[line[0:c2].lower()] = line[c2+1:].strip()
             return (True, sets)
 
         if response['data'][0].find(':') == -1:
