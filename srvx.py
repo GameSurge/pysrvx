@@ -869,6 +869,48 @@ class OpServ():
         response = self._command("deltrust %s" % ip)
         return response['data'][0] == 'Removed trusted hosts from the trusted-hosts list.'
 
+    def gtrace_count(self, criteria):
+
+        # Get the number of matching glines
+        response = self._command("gtrace count %s" % criteria)
+        if response['data'][0] == 'Nothing matched the criteria of your search.':
+            return 0
+
+        return int(response['data'][0].split(' ')[1])
+
+    def gtrace_print(self, criteria):
+
+        # Get a list of all do-not-registers
+        glines = []
+
+        response = self._command("gtrace print %s" % criteria)
+        if response['data'][-1] == 'Nothing matched the criteria of your search.':
+            return glines
+
+        # The following glines were found:
+        # ronald@*.gline.de (issued 28 minutes and 55 seconds ago by cltx, lastmod 7 minutes and 44 seconds ago, expires 1 day and 23 hours, lifetime 6 days and 23 hours): Replace
+        # miriam@gline.de (issued 29 minutes and 23 seconds ago by cltx, lastmod 29 minutes and 23 seconds ago, expires 6 days and 23 hours, lifetime 6 days and 23 hours): Very bad Person
+        # Found 2 matches.
+
+        for line in response['data'][1:-1]:
+            matches = re.match(r"^(\S+) \(issued ([a-z0-9 ]+) ago by (\S+), lastmod ([a-z0-9 ]+), expires ([a-z0-9 ]+), lifetime ([a-z0-9 ]+)\)\: (.*)$", line)
+
+            if matches is None:
+                logging.debug('Unexpected gline line: "%s"' % line)
+                continue
+
+            gline = {'ip': matches.group(1),
+                 'issued': matches.group(2),
+                 'setter': matches.group(3),
+                 'lastmod': matches.group(4),
+                 'expires': matches.group(5),
+                 'lifetime': matches.group(6),
+                 'reason': matches.group(7)}
+            glines.append(gline)
+
+        # Return glines list
+        return glines
+
     def stats_email(self, email=None):
 
         # Check if the given email is banned
