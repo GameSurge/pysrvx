@@ -368,7 +368,7 @@ class AuthServ():
     def oset(self, account, key=None, value=None):
 
         keys = ['color', 'email', 'info', 'language', 'privmsg', 'tablewith', 'width', 'maxlogins', 'password', 'flags', 'level', 'epithet']
-        if key.lower() not in keys:
+        if key and key.lower() not in keys:
             return (False, '%s not in key list' % key)
 
         # Oset some things or grab them or grab them all
