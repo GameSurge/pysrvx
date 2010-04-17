@@ -892,6 +892,33 @@ class OpServ():
             emails[parts[0]] = parts[1]
         return emails
 
+    def stats_glines(self, ip=None):
+
+        # Get a gline or the gline count (depending on ip)
+        response = self._command("stats glines %s" % (ip or ''))
+
+        if ip and response['data'][0].endswith('is not a known G-line.'):
+            return None
+
+        if not ip:
+            parts = response['data'][0].split(' ')
+            return int(parts[2])
+
+        # ronald@*.gline.de (issued 14 minutes and 44 seconds ago by cltx, lastmod 14 minutes and 44 seconds ago, expires 6 days and 23 hours, lifetime 6 days and 23 hours): Very Bad Subdomain User
+        matches = re.match(r"^(\S+) \(issued ([a-z0-9 ]+) ago by (\S+), lastmod ([a-z0-9 ]+), expires ([a-z0-9 ]+), lifetime ([a-z0-9 ]+)\)\: (.*)$", response['data'][0])
+        if matches is None:
+            logging.debug('Unexpected gline line: "%s"' % response['data'][0])
+            return None
+
+        gline = {'ip': matches.group(1),
+                 'issued': matches.group(2),
+                 'setter': matches.group(3),
+                 'lastmod': matches.group(4),
+                 'expires': matches.group(5),
+                 'lifetime': matches.group(6),
+                 'reason': matches.group(7)}
+        return gline
+
     def stats_trusted(self, ip=None):
 
         # Get a list of trusted hosts
