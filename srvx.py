@@ -367,10 +367,8 @@ class AuthServ():
 
     def oset(self, account, key=None, value=None):
 
-        keys = ['color', 'email', 'info', 'language', 'privmsg', 'style', 'tablewith', 'width', 'maxlogins', 'password', 'flags', 'level', 'ephinet']
-        try:
-            keys.index(key.lower())
-        except ValueError:
+        keys = ['color', 'email', 'info', 'language', 'privmsg', 'tablewith', 'width', 'maxlogins', 'password', 'flags', 'level', 'epithet']
+        if key.lower() not in keys
             return (False, '%s not in key list' % key)
 
         # Oset some things or grab them or grab them all
@@ -399,9 +397,7 @@ class AuthServ():
             return (False, response['data'][0])
 
         parts = response['data'][0].split(':')
-        try:
-            keys.index(parts[0].lower())
-        except ValueError:
+        if parts[0].lower() not in keys
             return (False, response['data'][0])
 
         return (True, [parts[0],parts[1].strip()])
