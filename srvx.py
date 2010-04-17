@@ -365,6 +365,67 @@ class AuthServ():
         response = self._command('oregister %s %s %s %s' % (account, password, mask and mask or '*', email and email or ""), hide_arg=2)
         return response['data'][0] == 'Account has been registered.', response['data'][0]
 
+    def oset(self, account, key=None, value=None):
+
+        keys = ['color', 'email', 'info', 'language', 'privmsg', 'style', 'tablewith', 'width', 'maxlogins', 'password', 'flags', 'level', 'ephinet']
+        try:
+            keys.index(key.lower())
+        except ValueError:
+            return (False, '%s not in key list' % key)
+
+        # Oset some things or grab them or grab them all
+        if key == 'password' and value:
+            response = self._command('oset *%s %s %s' % (account, key and key or "", value and value or ""), hide_arg=2)
+        else:
+            response = self._command('oset *%s %s %s' % (account, key and key or "", value and value or ""))
+
+        if response['data'][0].endswith('is an invalid account setting.'):
+            return (False, response['data'][0])
+
+        if response['data'][0].endswith('has not been registered.'):
+            return (False, response['data'][0])
+
+        if response['data'][0].endswith('does not exist.'):
+            return (False, response['data'][0])
+
+        if response['data'][0] == 'AuthServ account settings:':
+            sets = []
+            for line in response['data'][1:]:
+                c2 = line.find(':')
+                sets.append([line[0:c2],line[c2+1:].strip()])
+            return (True, sets)
+
+        if response['data'][0].find(':') == -1:
+            return (False, response['data'][0])
+
+        parts = response['data'][0].split(':')
+        try:
+            keys.index(parts[0].lower())
+        except ValueError:
+            return (False, response['data'][0])
+
+        return (True, [parts[0],parts[1].strip()])
+
+    def oset_email(self, account, value=None):
+
+        # Use Generic Function
+        return self.oset(account, 'email', value)
+
+    def oset_flags(self, account, value=None):
+
+        # Use Generic Function
+        return self.oset(account, 'flags', value)
+
+    def oset_level(self, account, value=None):
+
+        # Use Generic Function
+        return self.oset(account, 'level', value)
+
+    def oset_password(self, account, value=None):
+
+        # Use Generic Function
+        return self.oset(account, 'password', value)
+
     def ounregister(self, account, force=False):
 
         # Remove an Account from the network
