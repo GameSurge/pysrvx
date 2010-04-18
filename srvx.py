@@ -371,11 +371,14 @@ class AuthServ():
         if key and key.lower() not in keys:
             return (False, '%s not in key list' % key)
 
-        # Oset some things or grab them or grab them all
+        # oset some value or get it or get them all
         if key and key.lower() == 'password' and value:
             response = self._command('oset *%s %s %s' % (account, key and key or "", value and value or ""), hide_arg=3)
         else:
             response = self._command('oset *%s %s %s' % (account, key and key or "", value and value or ""))
+
+        if response['data'][0].endswith('outranks you (command has no effect).'):
+            return (False, response['data'][0])
 
         if response['data'][0].endswith('is an invalid account setting.'):
             return (False, response['data'][0])
@@ -404,8 +407,9 @@ class AuthServ():
             return (False, response['data'][0])
 
         if parts[1].strip() == 'Not set.':
-            return (True, [parts[0],None])
-        return (True, [parts[0],parts[1].strip()])
+            return (True, None)
+
+        return (True, parts[1].strip())
 
     def oset_email(self, account, value=None):
 
