@@ -944,6 +944,36 @@ class OpServ():
 
         return int(response['data'][0].split(' ')[1])
 
+    def _gline_parse(self, line):
+
+        # The following glines were found:
+        # ronald@*.gline.de (issued 28 minutes and 55 seconds ago by cltx, lastmod 7 minutes and 44 seconds ago, expires 1 day and 23 hours, lifetime 6 days and 23 hours): Replace
+        # miriam@gline.de (issued 29 minutes and 23 seconds ago by cltx, lastmod 29 minutes and 23 seconds ago, expires 6 days and 23 hours, lifetime 6 days and 23 hours): Very bad Person
+        # Found 2 matches.
+
+        # { "OSMSG_GTRACE_FORMAT", "%1$s (issued %2$s ago by %3$s, lastmod %4$s ago, expires %5$s, lifetime %7$s): %6$s" },
+        # { "OSMSG_GTRACE_FOREVER", "%1$s (issued %2$s ago by %3$s, lastmod %4$s ago, never expires, lifetime %7$s): %6$s" }, # not used by srvx right now (bug)
+        # { "OSMSG_GTRACE_EXPIRED", "%1$s (issued %2$s ago by %3$s, lastmod %4$s ago, expired %5$s ago, lifetime %7$s): %6$s" },
+
+        matches = re.match(r"^(\S+) \(issued ([a-z0-9 ]+) ago by (\S+), lastmod ([a-z0-9<> ]+) ago, (expire[sd]) ([a-z0-9 ]+), lifetime ([a-z0-9 ]+)\)\: (.*)$", line)
+
+        if matches is None:
+            logging.warning('Unexpected gline line: "%s"' % line)
+            return None
+
+        gline = {
+            'mask': matches.group(1),
+            'issued': matches.group(2),
+            'setter': matches.group(3),
+            'lastmod': matches.group(4) != '<unknown>' and matches.group(4) or None,
+            'expired': matches.group(5) == 'expired',
+            'expires': matches.group(6),
+            'lifetime': matches.group(7),
+            'reason': matches.group(8)
+        }
+
+        return gline
+
     def gtrace_print(self, criteria):
 
         # Get a list of all do-not-registers
@@ -953,26 +983,10 @@ class OpServ():
         if response['data'][-1] == 'Nothing matched the criteria of your search.':
             return glines
 
-        # The following glines were found:
-        # ronald@*.gline.de (issued 28 minutes and 55 seconds ago by cltx, lastmod 7 minutes and 44 seconds ago, expires 1 day and 23 hours, lifetime 6 days and 23 hours): Replace
-        # miriam@gline.de (issued 29 minutes and 23 seconds ago by cltx, lastmod 29 minutes and 23 seconds ago, expires 6 days and 23 hours, lifetime 6 days and 23 hours): Very bad Person
-        # Found 2 matches.
-
         for line in response['data'][1:-1]:
-            matches = re.match(r"^(\S+) \(issued ([a-z0-9 ]+) ago by (\S+), lastmod ([a-z0-9 ]+), expires ([a-z0-9 ]+), lifetime ([a-z0-9 ]+)\)\: (.*)$", line)
-
-            if matches is None:
-                logging.warning('Unexpected gline line: "%s"' % line)
-                continue
-
-            gline = {'ip': matches.group(1),
-                 'issued': matches.group(2),
-                 'setter': matches.group(3),
-                 'lastmod': matches.group(4),
-                 'expires': matches.group(5),
-                 'lifetime': matches.group(6),
-                 'reason': matches.group(7)}
-            glines.append(gline)
+            gline = self._gline_parse(line)
+            if gline:
+                glines.append(gline)
 
         # Return glines list
         return glines
@@ -1012,20 +1026,7 @@ class OpServ():
             parts = response['data'][0].split(' ')
             return int(parts[2])
 
-        # ronald@*.gline.de (issued 14 minutes and 44 seconds ago by cltx, lastmod 14 minutes and 44 seconds ago, expires 6 days and 23 hours, lifetime 6 days and 23 hours): Very Bad Subdomain User
-        matches = re.match(r"^(\S+) \(issued ([a-z0-9 ]+) ago by (\S+), lastmod ([a-z0-9 ]+), expires ([a-z0-9 ]+), lifetime ([a-z0-9 ]+)\)\: (.*)$", response['data'][0])
-        if matches is None:
-            logging.warning('Unexpected gline line: "%s"' % response['data'][0])
-            return None
-
-        gline = {'ip': matches.group(1),
-                 'issued': matches.group(2),
-                 'setter': matches.group(3),
-                 'lastmod': matches.group(4),
-                 'expires': matches.group(5),
-                 'lifetime': matches.group(6),
-                 'reason': matches.group(7)}
-        return gline
+        return self._gline_parse(response['data'][0])
 
     def stats_trusted(self, ip=None):
 
