@@ -320,7 +320,7 @@ class AuthServ():
                 elif key == 'Cookie':
                     matches = re.match(r"There is currently an? ([a-z ]+) cookie issued", value)
                     if matches is None:
-                        logging.debug('Unexpected cookie line: "%s"' % line)
+                        logging.warning('Unexpected cookie line: "%s"' % line)
                         continue
 
                     info['cookie'] = matches.group(1)
@@ -328,7 +328,7 @@ class AuthServ():
                 elif key[0:5] == 'Note ':
                     matches = re.match(r"^Note ([0-9]+) \(([a-z0-9 ]+) ago by ([^,]+)(?:, expires ([^)]+))?\)$", key)
                     if matches is None:
-                        logging.debug('Unexpected note line: "%s"' % line)
+                        logging.warning('Unexpected note line: "%s"' % line)
                         continue
 
                     note = {'id': int(matches.group(1)),
@@ -644,7 +644,7 @@ class ChanServ():
             matches = re.match(r"^((?:\*|\#)[^\s]+) is do-not-register \(set (\d+ \w{3} \d{4}) by ([^\s\;\)]+)(?:\; expires (\d+ \w{3} \d{4})){0,1}\)\:\s(.*)$", line)
 
             if matches is None:
-                logging.debug('Unexpected dnr line: "%s"' % line)
+                logging.warning('Unexpected dnr line: "%s"' % line)
                 continue
 
             dnr = {'glob': matches.group(1),
@@ -846,7 +846,7 @@ class OpServ():
                 elif line[0:6] == 'Modes:': # Modes: [+modes][; bad-word channel]
                     matches = re.match(r"^Modes: (?:(\+[a-zA-Z]+)((?: \S+?)*))?(; bad-word channel)?$", line)
                     if matches is None:
-                        logging.debug('Unexpected mode line: "%s"' % line)
+                        logging.warning('Unexpected mode line: "%s"' % line)
                         continue
 
                     info['badword'] = matches.group(3) is not None
@@ -870,13 +870,13 @@ class OpServ():
                     info['topic_time'] = matches.group(2)
                     info['topic'] = matches.group(3)
                 else:
-                    logging.debug('Unexpected line: "%s"' % line)
+                    logging.warning('Unexpected line: "%s"' % line)
 
             elif state == 1: # Bans
 
                 matches = re.match(r"^(\S+) by (\S+) \(([^)]+)\)$", line)
                 if matches is None:
-                    logging.debug('Unexpected ban line: "%s"' % line)
+                    logging.warning('Unexpected ban line: "%s"' % line)
                     continue
 
                 ban = {'mask': matches.group(1),
@@ -888,7 +888,7 @@ class OpServ():
 
                 matches = re.match(r"^ ([@+ ])([^:]+)(?::([0-9]+))? \(([^@]+)@([^)]+)\)$", line)
                 if matches is None:
-                    logging.debug('Unexpected user line: "%s"' % line)
+                    logging.warning('Unexpected user line: "%s"' % line)
                     continue
 
                 user = {'nick': matches.group(2),
@@ -962,7 +962,7 @@ class OpServ():
             matches = re.match(r"^(\S+) \(issued ([a-z0-9 ]+) ago by (\S+), lastmod ([a-z0-9 ]+), expires ([a-z0-9 ]+), lifetime ([a-z0-9 ]+)\)\: (.*)$", line)
 
             if matches is None:
-                logging.debug('Unexpected gline line: "%s"' % line)
+                logging.warning('Unexpected gline line: "%s"' % line)
                 continue
 
             gline = {'ip': matches.group(1),
@@ -1015,7 +1015,7 @@ class OpServ():
         # ronald@*.gline.de (issued 14 minutes and 44 seconds ago by cltx, lastmod 14 minutes and 44 seconds ago, expires 6 days and 23 hours, lifetime 6 days and 23 hours): Very Bad Subdomain User
         matches = re.match(r"^(\S+) \(issued ([a-z0-9 ]+) ago by (\S+), lastmod ([a-z0-9 ]+), expires ([a-z0-9 ]+), lifetime ([a-z0-9 ]+)\)\: (.*)$", response['data'][0])
         if matches is None:
-            logging.debug('Unexpected gline line: "%s"' % response['data'][0])
+            logging.warning('Unexpected gline line: "%s"' % response['data'][0])
             return None
 
         gline = {'ip': matches.group(1),
@@ -1046,7 +1046,7 @@ class OpServ():
         for line in response['data'][begin:]:
             matches = re.match(r"^(\S+) \((limit (\d+)|no limit); set ([a-z0-9 ]+) ago by (\S+); expires ([^:]+): (.+)\)$", line)
             if matches is None:
-                logging.debug('Unexpected trust line: "%s"' % line)
+                logging.warning('Unexpected trust line: "%s"' % line)
                 continue
 
             trust = {'ip': matches.group(1),
