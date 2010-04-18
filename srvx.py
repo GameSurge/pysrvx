@@ -31,33 +31,58 @@ class SrvX():
         # By default we're not authenticated
         self.authenticated = False
 
+        self.host = host
+        self.port = port
+        self.password = password
+        self.auth_user = auth_user
+        self.auth_password = auth_password
+
         # If we don't have a connection, connect and authenticate
         if not connection:
-
-            logging.info('Connecting to %s:%i' % (host, int(port)))
-
-            # Create our socket
-            connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-            # Connect to our remote host
-            connection.connect((host, int(port)))
-
-            # Send the QServer username and password
-            self._send_command('PASS %s' % password, True)
-
-            # Authenticate
-            self.authenticate(auth_user, auth_password)
-
+            self.reconnect()
         else:
             self.authenticated = True
             logging.debug('Re-using already authenticated and connected session')
 
-    def authenticate(self, username, password):
+    def reconnect(self):
+
+        global connection
+
+        if connection:
+            try:
+                connection.close()
+            except socket.error:
+                pass
+
+            connection = None
+            logging.info('Reconnecting to %s:%i' % (self.host, int(self.port)))
+        else:
+            logging.info('Connecting to %s:%i' % (self.host, int(self.port)))
+
+
+        # Create our socket
+        connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        try:
+            # Connect to our remote host
+            connection.connect((self.host, int(self.port)))
+        except socket.error, ex:
+            logging.warning('Could not connect to srvx: %s' % ex)
+            connection = None
+            raise SrvXConnectionLost
+
+        # Send the QServer username and password
+        self._send_command('PASS %s' % self.password, True)
+
+        # Authenticate
+        self.authenticate()
+
+    def authenticate(self):
 
         logging.debug('Processing AuthServ Authentication Request')
 
         # Send the AuthServ auth request
-        response = self._send_command('AuthServ AUTH %s %s' % (username, password))
+        response = self._send_command('AuthServ AUTH %s %s' % (self.auth_user, self.auth_password))
 
         # Parse the response
         if response['data'][0] == 'I recognize you.':
@@ -68,6 +93,7 @@ class SrvX():
 
     def disconnect(self):
 
+        global connection
         logging.debug('Closing connection to QServer')
         connection.close()
         connection = None
@@ -90,7 +116,11 @@ class SrvX():
         while not response_done:
 
             # Append data from the socket into the global buffer
-            self.response += connection.recv(32768)
+            tmp = connection.recv(32768)
+            if not tmp:
+                raise SrvXConnectionLost
+            self.response += tmp
+
             if self.response[-1] != '\n':
                 continue
 
@@ -196,11 +226,17 @@ class SrvX():
             logging.debug('Sending: %s' % command.strip())
 
         # Send the command
-        connection.send(command)
+        response = None
+        try:
+            connection.send(command)
+            if not no_response:
+                response = self.get_response()
+        except socket.error, ex:
+            logging.warning('Lost connection to srvx: %s' % ex)
+            raise SrvXConnectionLost
 
         # return the response
-        if not no_response:
-            return self.get_response()
+        return response
 
     def send_command(self, command):
 
@@ -1076,6 +1112,9 @@ class SrvXNotAuthenticated(Exception):
     pass
 
 class QServerSecurityViolation(Exception):
+    pass
+
+class SrvXConnectionLost(Exception):
     pass
 
 # If run via the command line
