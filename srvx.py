@@ -228,7 +228,7 @@ class SrvX():
         # Send the command
         response = None
         try:
-            connection.send(command)
+            connection.send(command.encode('iso-8859-1'))
             if not no_response:
                 response = self.get_response()
         except socket.error, ex:
