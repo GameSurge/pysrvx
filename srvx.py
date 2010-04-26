@@ -794,6 +794,9 @@ class ChanServ():
         # Get the userlist data
         response = self._command('%s %s' % (list_type, channel))
 
+        if response['data'][0] == 'You must provide the name of a channel that exists.':
+            return users
+
         # Get the column positions
         c1 = 0
         c2 = response['data'][1].find('Account')
