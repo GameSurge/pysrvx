@@ -913,7 +913,27 @@ class ChanServ():
 
 class HelpServ():
 
+    def __init__(self, srvx):
+
+        # Make sure that a srvx object was passed in
+        if isinstance(srvx, SrvX):
+            self.srvx = srvx
+        else:
+            raise InvalidSrvXObject
+
+    def _command(self, command):
+
+        # Send the command through srvx
+        return self.srvx.send_command('opserv helpserv %s' % command)
+
+
+class HelpServBot():
+
     def __init__(self, srvx, botname):
+
+        # Check for botname
+        if not botname:
+            raise HelpServBotRequired
 
         # Make sure that a srvx object was passed in
         if isinstance(srvx, SrvX):
@@ -924,7 +944,7 @@ class HelpServ():
         # Define my name
         self.botname = botname
 
-    def _command(self, command):
+    def _command(self, command, require_botname=False):
 
         # Run the command in the srvx object
         parts = command.split(' ', 2)
@@ -936,7 +956,7 @@ class HelpServ():
     def stats(self, account):
 
         # Get the stats of the user
-        response = self._command('stats *%s' % account)
+        response = self._command('stats *%s' % account, True)
 
         if response['data'][0].startswith('%s lacks access to' % account):
             return (False, response['data'][0])
@@ -952,20 +972,19 @@ class HelpServ():
         data['WeekStart'] = response['data'][0][c1:c2]
 
         #Time
-        for i,key in {3: 'ThisWeek', 4: 'LastWeek', 7: 'Total'}.items():
-            parts = response['data'][i].split(' ')
+        for i,key in {3: 'current', 4: 'last-1', 5: 'last-2', 6: 'last-3', 7: 'total'}.items():
+            parts = response['data'][i].split()
             data[key] = {}
-            data[key]['Time'] = ' '.join(parts[-5:-1]).strip() + ' ' + parts[-1]
+            data[key]['time'] = ' '.join(parts[-4:-1]).strip() + ' ' + parts[-1]
 
         #Requests
-        for i,key in {10: 'RequestsPickedUp', 11: 'RequestsClosed', 12: 'ReassignedFrom', 13: 'ReassignedTo'}.items():
-            parts = response['data'][i].split(' ')
-            data['ThisWeek'][key] = parts[-3].strip()
-            data['LastWeek'][key] = parts[-2].strip()
-            data['Total'][key] = parts[-1].strip()
+        for i,key in {10: 'requests_picked_up', 11: 'requestsclosed', 12: 'reassigned_from', 13: 'reassigned_to'}.items():
+            parts = response['data'][i].split()
+            data['current'][key] = parts[-3].strip()
+            data['last-1'][key] = parts[-2].strip()
+            data['total'][key] = parts[-1].strip()
 
         return (True, data)
-
 
 
 class OpServ():
@@ -1338,6 +1357,9 @@ class OpServ():
 class AuthServAuthenticationFailure(Exception):
     pass
 
+class HelpServBotRequired(Exception):
+    pass
+
 class QServerAuthenticationFailure(Exception):
     pass
 
@@ -1382,6 +1404,7 @@ if __name__ == '__main__':
                         help="AuthServ username:password pair to use")
 
     parser.add_option("-b", "--helpbot", action="store", dest="helpbot",
+                        default=None,
                         help="Name of HelpServ")
 
     # Parse our options and arguments
@@ -1414,7 +1437,9 @@ if __name__ == '__main__':
         elif class_name == 'chanserv':
             obj = ChanServ(srvx)
         elif class_name == 'helpserv':
-            obj = HelpServ(srvx, options.helpbot)
+            obj = HelpServ(srvx)
+        elif class_name == 'helpbot':
+            obj = HelpServBot(srvx, options.helpbot)
         elif class_name == 'opserv':
             obj = OpServ(srvx)
 
