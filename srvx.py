@@ -1030,6 +1030,29 @@ class OpServ():
         # Return glines list
         return glines
 
+    def stats_bad(self, name=None):
+
+        # Check if the given (channel) name is bad
+        if name:
+            response = self._command('stats bad %s' % name)
+            # #seks does not contain a bad word.
+            # #sex contains a bad word.
+            return response['data'][0].split(' ', 1)[1] == 'contains a bad word.'
+
+        # Get a list of all badwords and exempts
+        response = self._command('stats bad')
+        badwords = []
+        exempts = []
+        for line in response['data']:
+            if line.startswith('Bad words:'):
+                badwords += line[11:].split()
+            elif line.startswith('Exempted channels:'):
+                exempts += line[19:].split()
+            else:
+                logging.warning('Unexpected badword line: "%s"' % line)
+
+        return badwords, exempts
+
     def stats_email(self, email=None):
 
         # Check if the given email is banned
