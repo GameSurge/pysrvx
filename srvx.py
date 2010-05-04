@@ -398,7 +398,7 @@ class AuthServ():
             return parts[1] != '*' and parts[1] or None
 
         accounts = {}
-        for chunk in (ids[pos:pos + 5] for pos in xrange(0, len(ids), 5)):
+        for chunk in (ids[pos:pos + 20] for pos in xrange(0, len(ids), 20)):
             response = self._command('checkid %s' % ' '.join(map(str, chunk)))
             for line in response['data']:
                 parts = line.split(' ')
