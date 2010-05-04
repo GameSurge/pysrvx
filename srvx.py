@@ -389,6 +389,23 @@ class AuthServ():
         response = self._command('checkemail *%s %s' % (account, email))
         return response['data'][0] == 'Yes.'
 
+    def checkid(self, ids):
+
+        # Check given account IDs and return their account names if they exist
+        if not isinstance(ids, list):
+            response = self._command('checkid %s' % ids)
+            parts = response['data'][0].split(' ')
+            return parts[1] != '*' and parts[1] or None
+
+        accounts = {}
+        for chunk in (ids[pos:pos + 5] for pos in xrange(0, len(ids), 5)):
+            response = self._command('checkid %s' % ' '.join(map(str, chunk)))
+            for line in response['data']:
+                parts = line.split(' ')
+                accounts[int(parts[0])] = parts[1] != '*' and parts[1] or None
+
+        return accounts
+
     def checkpass(self, account, password):
 
         # Check to see if the account and password are valid in returning bool
