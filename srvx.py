@@ -1163,6 +1163,7 @@ class SrvXConnectionLost(Exception):
 # If run via the command line
 if __name__ == '__main__':
     import optparse
+    from pprint import pprint
 
     usage = "usage: %prog [options] [class function args]"
     version_string = "%%prog %s" % __version__
@@ -1226,12 +1227,12 @@ if __name__ == '__main__':
 
         # Call the object function
         if len(args) == 2:
-            print function()
+            pprint(function())
         elif len(args) == 3:
-            print function(args[2])
+            pprint(function(args[2]))
         elif len(args) == 4:
-            print function(args[2], args[3])
+            pprint(function(args[2], args[3]))
         elif len(args) == 5:
-            print function(args[2], args[3], args[4])
+            pprint(function(args[2], args[3], args[4]))
         elif len(args) == 6:
-            print function(args[2], args[3], args[4], args[5])
+            pprint(function(args[2], args[3], args[4], args[5]))
