@@ -940,7 +940,7 @@ class HelpServBot():
         # Define my name
         self.botname = botname
 
-    def _command(self, command, require_botname=False):
+    def _command(self, command):
 
         # Run the command in the srvx object
         parts = command.split(' ', 2)
@@ -952,35 +952,41 @@ class HelpServBot():
     def stats(self, account):
 
         # Get the stats of the user
-        response = self._command('stats *%s' % account, True)
+        response = self._command('stats *%s' % account)
 
-        if response['data'][0].startswith('%s lacks access to' % account):
-            return (False, response['data'][0])
+        if response['data'][0].endswith('does not exist.'):
+            return None, response['data'][0]
+
+        if response['data'][0].endswith('has not been registered.'):
+            return None, response['data'][0]
+
+        if response['data'][0].find('lacks access to') != -1:
+            return None, response['data'][0]
 
         if not response['data'][0].find('user %s (week starts' % account):
-            return (False, response['data'][0])
+            return None, response['data'][0]
 
         data = {}
 
-        #Weekstart
+        # Weekstart
         c1 = response['data'][0].find('week starts') + 12
         c2 = response['data'][0].find(')',c1)
-        data['WeekStart'] = response['data'][0][c1:c2]
+        data['weekstart'] = response['data'][0][c1:c2]
 
-        #Time
-        for i,key in {3: 'current', 4: 'last-1', 5: 'last-2', 6: 'last-3', 7: 'total'}.items():
+        # Time
+        for i, key in {3: 'current', 4: 'last-1', 5: 'last-2', 6: 'last-3', 7: 'total'}.items():
             parts = response['data'][i].split()
             data[key] = {}
             data[key]['time'] = ' '.join(parts[-4:-1]).strip() + ' ' + parts[-1]
 
-        #Requests
-        for i,key in {10: 'requests_picked_up', 11: 'requestsclosed', 12: 'reassigned_from', 13: 'reassigned_to'}.items():
+        # Requests
+        for i, key in {10: 'requests_picked_up', 11: 'requests_closed', 12: 'reassigned_from', 13: 'reassigned_to'}.items():
             parts = response['data'][i].split()
             data['current'][key] = parts[-3].strip()
             data['last-1'][key] = parts[-2].strip()
             data['total'][key] = parts[-1].strip()
 
-        return (True, data)
+        return data, None
 
 
 class OpServ():
