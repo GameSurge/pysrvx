@@ -268,7 +268,7 @@ class AuthServ():
         response = self._command('accountinfo *%s' % account)
 
         # Bail out if account does not exist
-        if response['data'][0].split(' ')[3] == 'not':
+        if response['data'][0].endswith('has not been registered.'):
             return None
 
         # Get account name "Account information for NAME:"
@@ -422,7 +422,7 @@ class AuthServ():
 
         keys = ['color', 'email', 'info', 'language', 'privmsg', 'tablewith', 'width', 'maxlogins', 'password', 'flags', 'level', 'epithet']
         if key and key.lower() not in keys:
-            return (False, '%s not in key list' % key)
+            raise ValueError, 'Invalid setting'
 
         # oset some value or get it or get them all
         if key and key.lower() == 'password' and value:
@@ -596,7 +596,7 @@ class ChanServ():
         if force and response['data'][0].find('is already on') != -1:
             return self.clvl(channel, account, level)
 
-        return response['data'][0].find('Added') != -1, response['data'][0]
+        return response['data'][0].startswith('Added'), response['data'][0]
 
     def bans(self, channel):
 
@@ -650,14 +650,14 @@ class ChanServ():
         else:
             response = self._command('csuspend %s %s %s' % (channel, duration, reason))
 
-        return response['data'][0].find('has been temporarily suspended.') != -1, response['data'][0]
+        return response['data'][0].endswith('has been temporarily suspended.'), response['data'][0]
 
     def cunsuspend(self, channel):
 
         # Unsuspend channel
         response = self._command('cunsuspend %s' % channel)
 
-        return response['data'][0].find('has been restored.') != -1, response['data'][0]
+        return response['data'][0].endswith('has been restored.'), response['data'][0]
 
     def deluser(self, channel, account, level=None, strict=False):
 
@@ -954,9 +954,6 @@ class HelpServBot():
         # Get the stats of the user
         response = self._command('stats *%s' % account)
 
-        if response['data'][0].endswith('does not exist.'):
-            return None, response['data'][0]
-
         if response['data'][0].endswith('has not been registered.'):
             return None, response['data'][0]
 
@@ -1012,18 +1009,25 @@ class OpServ():
         else:
             response = self._command('access *%s %i' % (account, int(level)))
 
-        # "*ThiefMaster (account ThiefMaster) has 900 access."
         # Account SomeAccount has not been registered.
-        parts = response['data'][0].split(' ')
-        if parts[3] == 'not':
+        if response['data'][0].endswith('has not been registered.'):
             return None
+
+        field = 0
+        if response['data'][0].endswith('outranks you (command has no effect).'):
+            field = 1
+        elif response['data'][0] == 'You may not promote another oper above your level.':
+            field = 1
+
+        # "*ThiefMaster (account ThiefMaster) has 900 access."
+        parts = response['data'][field].split(' ')
         return int(parts[4])
 
     def addtrust(self, ip, count, duration, reason):
 
         # Add a trusted host
         response = self._command("addtrust %s %i %s %s" % (ip, int(count), duration, reason))
-        return response['data'][0][0:5] == 'Added', response['data'][0]
+        return response['data'][0].startswith('Added'), response['data'][0]
 
     def chaninfo(self, channel):
 
