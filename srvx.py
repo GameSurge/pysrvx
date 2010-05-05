@@ -756,24 +756,98 @@ class ChanServ():
         response = self._command('giveownership %s *%s %s' % (channel, account, force and 'FORCE' or ""))
         return response['data'][0].find('Ownership of %s has been transferred' % channel) != -1, response['data'][0]
 
+    def _info_check_dnr(self, line):
+        matches = re.match(r'^((?:\*|\#)[^\s]+) is do-not-register \(set (\d+ \w{3} \d{4}) by ([^\s\;\)]+)(?:\; expires (\d+ \w{3} \d{4})){0,1}\)\:\s(.*)$', line)
+
+        if matches is None:
+            return False
+
+        dnr = {'glob': matches.group(1),
+               'set_time': matches.group(2),
+               'setter': matches.group(3),
+               'expires': matches.group(4),
+               'reason': matches.group(5)}
+        return dnr
+
     def info(self, channel):
 
         # Send our command to ChanServ
         response = self._command('info %s' % channel)
 
+        if response['data'][0] == 'You must provide the name of a channel that exists.':
+            return None
+        elif response['data'][0].endswith('has not been registered with ChanServ.'):
+            return None
+
         # Build the initial dictionary
-        info = {'channel': response['data'][0].split(' ')[0]}
+        info = {'channel': response['data'][0].split(' ')[0],
+                'notes': {},
+                'owners': [],
+                'registrar': None,
+                'dnrs': [],
+                'suspended': False,
+                'suspensions': []}
 
-        # Loop through the remaining lines and build a dictionary of values
+        suspensions = False
         for line in response['data'][1:]:
-            parts = line.split(':')
-            if len(parts) > 1:
-                info[parts[0].strip()] = parts[1].strip()
-            else:
-                if len(line.strip()) > 0:
-                    logging.error('Odd info response: %s' % line)
 
-        # Return the dictionary
+            # Check for dnr line
+            dnr = self._info_check_dnr(line)
+            if dnr:
+                info['dnrs'].append(dnr)
+                continue
+
+            # Check for suspension
+            if line == info['channel'] + ' is suspended:':
+                info['suspended'] = True
+                suspensions = True
+                continue
+            elif line.startswith('Suspension history for'):
+                suspensions = True
+                continue
+
+            # If we had a suspension header, everything is suspension-related
+            if suspensions:
+                info['suspensions'].append(line.strip())
+                continue
+
+            # Deal with regular 'key: value' pairs
+            parts = line.split(':', 1)
+            key = parts[0].strip()
+            value = parts[1].strip()
+
+            if key == 'Default Topic':
+                info['default_topic'] = value or None
+
+            elif key == 'Mode Lock':
+                info['mode_lock'] = (value != 'None') and value or None
+
+            elif key == 'Record Visitors':
+                info['record_visitors'] = int(value)
+
+            elif key == 'Owner':
+                info['owners'].append(value)
+
+            elif key == 'Total User Count':
+                info['user_count'] = int(value)
+
+            elif key == 'Ban Count':
+                info['ban_count'] = int(value)
+
+            elif key == 'Visited':
+                info['visited'] = value[:-1] # strip trailing dot
+
+            elif key == 'Registered':
+                info['registered'] = value[:-1] # strip trailing dot
+
+            elif key == 'Registrar':
+                info['registrar'] = value
+
+            else:
+                # Horrible, this could also be an unknown key..
+                # but we cannot distinguish between that without checking the position
+                info['notes'][key] = value
+
         return info
 
     def mlist(self, channel):
