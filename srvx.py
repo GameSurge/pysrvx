@@ -1214,6 +1214,68 @@ class OpServ():
         # If we checked a specific ip, we can assume trusts to contain exactly one element
         return ip and trusts[0] or trusts
 
+    def trace(self, action, criteria):
+
+        # Get the number of matching users
+        response = self._command('trace %s %s' % (action, criteria))
+        if response['data'][0] == 'Nothing matched the criteria of your search.':
+            return 0
+        elif response['data'][0].endswith('is an invalid search criteria.'):
+            return 0
+        elif response['data'][0].endswith('requires more parameters.'):
+            return 0
+        elif response['data'][0] == 'You must provide a valid channel name.':
+            return 0
+        elif response['data'][0].startswith('Invalid criteria:'):
+            return 0
+
+        return int(response['data'][0].split(' ')[1])
+
+    def trace_count(self, criteria):
+        return self.trace('count', criteria)
+
+    def trace_gline(self, criteria):
+        return self.trace('gline', criteria)
+
+    def trace_kill(self, criteria):
+        return self.trace('kill', criteria)
+
+    def trace_print(self, criteria):
+
+        response = self._command('trace print %s' % criteria)
+        if response['data'][0] == 'Nothing matched the criteria of your search.':
+            return []
+        elif response['data'][0].endswith('is an invalid search criteria.'):
+            return []
+        elif response['data'][0].endswith('requires more parameters.'):
+            return []
+        elif response['data'][0] == 'You must provide a valid channel name.':
+            return []
+        elif response['data'][0].startswith('Invalid criteria:'):
+            return []
+
+        users = []
+        for line in response['data'][1:-1]:
+            # Strip off leading space if necessary as it breaks the splitting
+            leading_space = ''
+            if line[0] == ' ':
+                leading_space = ' '
+                line = line[1:]
+
+            parts = line.split(' ')
+            user = {'account': None}
+            if len(parts) > 1:
+                user['account'] = parts[1]
+
+            nick, ident_host = parts[0].split('!', 1)
+            ident, host = ident_host.split('@', 1)
+            user['nick'] = leading_space + nick
+            user['ident'] = ident
+            user['host'] = host
+            users.append(user)
+
+        return users
+
 
 # Exceptions
 class AuthServAuthenticationFailure(Exception):
