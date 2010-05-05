@@ -931,10 +931,6 @@ class HelpServBot():
 
     def __init__(self, srvx, botname):
 
-        # Check for botname
-        if not botname:
-            raise HelpServBotRequired
-
         # Make sure that a srvx object was passed in
         if isinstance(srvx, SrvX):
             self.srvx = srvx
@@ -1357,9 +1353,6 @@ class OpServ():
 class AuthServAuthenticationFailure(Exception):
     pass
 
-class HelpServBotRequired(Exception):
-    pass
-
 class QServerAuthenticationFailure(Exception):
     pass
 
@@ -1378,6 +1371,7 @@ class SrvXConnectionLost(Exception):
 # If run via the command line
 if __name__ == '__main__':
     import optparse
+    import sys
     from pprint import pprint
 
     usage = "usage: %prog [options] [class function args]"
@@ -1414,12 +1408,14 @@ if __name__ == '__main__':
     if not options.password or not options.auth:
         print 'Error: missing required parameters'
         parser.print_help()
+        sys.exit(1)
 
     # Make sure the auth string is in foo:bar format
     auth = options.auth.split(':')
     if len(auth) < 2:
         print 'Error: invalid authserv credentials'
         parser.print_help()
+        sys.exit(1)
 
     # Turn on debug logging
     logging.basicConfig(level=logging.INFO)
@@ -1431,6 +1427,11 @@ if __name__ == '__main__':
 
         class_name = args[0].lower()
         function_name = args[1]
+
+        if class_name == 'helpbot' and not options.helpbot:
+            print 'Error: helpbot needs a helpserv bot nick'
+            parser.print_help()
+            sys.exit(1)
 
         if class_name == 'authserv':
             obj = AuthServ(srvx)
