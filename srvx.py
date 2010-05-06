@@ -1310,6 +1310,9 @@ class OpServ():
             return 0
         elif response['data'][0].startswith('Invalid criteria:'):
             return 0
+        elif response['data'][0].startswith('Channel with name ') and \
+             response['data'][0].endswith('does not exist.'):
+            return 0
 
         return int(response['data'][0].split(' ')[1])
 
