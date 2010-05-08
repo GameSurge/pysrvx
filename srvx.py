@@ -675,7 +675,7 @@ class ChanServ():
 
         return response['data'][0].startswith('Deleted '), response['data'][0]
 
-    def _dnrsearch_parse(self, response):
+    def _dnrsearch_parse(self, response, silent=False):
 
         # Get a list of all do-not-registers
         dnrs = []
@@ -689,15 +689,19 @@ class ChanServ():
         # #m*rt*n is do-not-register (set 14 Apr 2010 by cltx; expires 21 Apr 2010): Very special test dnr
         # Found 3 matches.
 
+        if response['data'][0] == 'The following do-not-registers were found:':
+            del response['data'][0]
+
         matches = re.match(r'^Found \d+ matches.$', response['data'][-1])
         if matches is not None:
             del response['data'][-1]
 
-        for line in response['data'][1:]:
+        for line in response['data']:
             matches = re.match(r"^((?:\*|\#)[^\s]+) is do-not-register \(set (\d+ \w{3} \d{4}) by ([^\s\;\)]+)(?:\; expires (\d+ \w{3} \d{4})){0,1}\)\:\s(.*)$", line)
 
             if matches is None:
-                logging.warning('Unexpected dnr line: "%s"' % line)
+                if not silent:
+                    logging.warning('Unexpected dnr line: "%s"' % line)
                 continue
 
             dnr = {'glob': matches.group(1),
@@ -878,6 +882,38 @@ class ChanServ():
 
         # Use the generic users function
         return self.users(channel, 'plist')
+
+    def register(self, channel, account, force=False):
+
+        # Register a channel
+        response = self._command('register %s *%s %s' %
+            (channel, account, force and 'FORCE' or ''))
+
+        # We first check for dnrs since they can end with arbitrary strings
+        # and would make checking for other things harder
+        dnrs = self._dnrsearch_parse(response, silent=True)
+        if dnrs:
+            return False, {'reason': 'dnr', 'dnrs': dnrs}, None
+
+        line = response['data'][0]
+        if line.endswith('illegal channel, and cannot be registered.'):
+            return False, {'reason': 'illegal'}, line
+
+        if line == 'has not been registered.':
+            return False, {'reason': 'no_account'}, line
+
+        if line.endswith('is registered to someone else.'):
+            return False, {'reason': 'registered'}, line
+
+        if line == 'You must provide a valid channel name.':
+            return False, {'reason': 'bad_name'}, line
+
+        if line.find('owns enough channels') != -1:
+            return False, {'reason': 'too_many'}, line
+
+        if line.find('now has ownership of') or \
+            line.find('now have ownership of'):
+            return True, None, line
 
     def users(self, channel, list_type='users'):
 
