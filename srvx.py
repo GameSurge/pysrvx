@@ -704,7 +704,8 @@ class ChanServ():
                    'set_time': matches.group(2),
                    'setter': matches.group(3),
                    'expires': matches.group(4),
-                   'reason': matches.group(5)}
+                   'reason': matches.group(5),
+                   'orig': line}
             dnrs.append(dnr)
 
         # Return dnr list
@@ -766,7 +767,8 @@ class ChanServ():
                'set_time': matches.group(2),
                'setter': matches.group(3),
                'expires': matches.group(4),
-               'reason': matches.group(5)}
+               'reason': matches.group(5),
+               'orig': line}
         return dnr
 
     def info(self, channel):
