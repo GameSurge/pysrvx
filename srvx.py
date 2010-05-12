@@ -21,7 +21,8 @@ connection = None
 # Core Classes
 class SrvX():
 
-    def __init__(self, host='127.0.0.1', port=7702, password=None, auth_user=None, auth_password=None):
+    def __init__(self, host='127.0.0.1', port=7702, password=None,
+        auth_user=None, auth_password=None, bind=None):
 
         global connection
 
@@ -31,6 +32,7 @@ class SrvX():
         # By default we're not authenticated
         self.authenticated = False
 
+        self.bind = bind
         self.host = host
         self.port = port
         self.password = password
@@ -62,6 +64,16 @@ class SrvX():
 
         # Create our socket
         connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        if self.bind:
+            try:
+                # Bind to local ip
+                logging.info('Binding to %s' % self.bind)
+                connection.bind((self.bind, 0))
+            except socket.error, ex:
+                logging.warning('Could not bind to local ip: %s' % ex)
+                connection = None
+                raise SrvXConnectionLost
 
         try:
             # Connect to our remote host
@@ -1438,6 +1450,10 @@ if __name__ == '__main__':
                         default='127.0.0.1',
                         help="Host IP Address")
 
+    parser.add_option("-b", "--bind", action="store", dest="bind_ip",
+                        default=None,
+                        help="Local IP Address")
+
     parser.add_option("-p", "--port", action="store", dest="port",
                         default=7702,
                         help="Host TCP Port")
@@ -1448,9 +1464,9 @@ if __name__ == '__main__':
     parser.add_option("-a", "--auth", action="store", dest="auth",
                         help="AuthServ username:password pair to use")
 
-    parser.add_option("-b", "--helpbot", action="store", dest="helpbot",
+    parser.add_option("-H", "--helpserv", action="store", dest="helpbot",
                         default=None,
-                        help="Name of HelpServ")
+                        help="HelpServ bot name")
 
     # Parse our options and arguments
     options, args = parser.parse_args()
@@ -1474,7 +1490,8 @@ if __name__ == '__main__':
     if len(args) >= 2:
 
         # Intialize srvx
-        srvx = SrvX(options.ipaddr, options.port, options.password, auth[0], auth[1])
+        srvx = SrvX(options.ipaddr, options.port, options.password,
+            auth[0], auth[1], options.bind_ip)
 
         class_name = args[0].lower()
         function_name = args[1]
