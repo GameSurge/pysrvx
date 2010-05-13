@@ -880,6 +880,82 @@ class ChanServ():
 
         return response['data'][0].startswith('Channel modes are now')
 
+    def note(self, channel, type=None, text=None):
+
+        # Run command
+        if type:
+            if text:
+                response = self._command('note %s %s %s' % (channel, type, text))
+            else:
+                response = self._command('note %s %s' % (channel, type))
+        else:
+            response = self._command('note %s' % channel)
+
+        if response['data'][0] == 'You must provide the name of a channel that exists.':
+            return False, None, response['data'][0]
+
+        if response['data'][0].startswith('There are no (visible) notes for'):
+            return False, None, response['data'][0]
+
+        if type and response['data'][0] == 'Note type %s does not exist.' % type:
+            return False, None, response['data'][0]
+
+        if text and response['data'][0].startswith('Note %s set in channel' % type):
+            return True, {}, response['data'][0]
+
+        # replacing old note
+        if text and response['data'][0].startswith('Replaced old %s note on' % type):
+            line = response['data'][0]
+            matches = re.match(r"^(.+) \(set by ([^:]+)\)\: (.+)$", line)
+            if matches is None:
+                logging.warning('Unexpected mode line: "%s"' % line)
+                return False, line
+
+            note = {}
+            note['type'] = matches.group(1)
+            note['setter'] = matches.group(2)
+            note['text'] = matches.group(3)
+
+            return True, note, response['data'][0]
+
+        # getting note from chan
+        if type and not text:
+
+            line = response['data'][0]
+            matches = re.match(r"^(.+) \(set by ([^:]+)\)\: (.+)$", line)
+            if matches is None:
+                logging.warning('Unexpected mode line: "%s"' % line)
+                return False, line
+
+            note = {}
+            note['type'] = matches.group(1)
+            note['setter'] = matches.group(2)
+            note['text'] = matches.group(3)
+
+            return True, note, response['data'][0]
+
+        # getting all notes from chan
+        if not type and not text:
+
+            notes = []
+            for line in response['data'][1:-1]:
+
+                matches = re.match(r"^(.+) \(set by ([^:]+)\)\: (.+)$", line)
+                if matches is None:
+                    logging.warning('Unexpected mode line: "%s"' % line)
+                    continue
+
+                note = {}
+                note['type'] = matches.group(1)
+                note['setter'] = matches.group(2)
+                note['text'] = matches.group(3)
+
+                notes.append(note)
+
+            return True, notes, response['data'][1:-1]
+
+        return False, None, response['data']
+
     def say(self, channel, message):
 
         # Send the say command, we don't care about the response
