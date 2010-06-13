@@ -1252,6 +1252,12 @@ class OpServ():
         response = self._command("deltrust %s" % ip)
         return response['data'][0] == 'Removed trusted hosts from the trusted-hosts list.'
 
+    def edittrust(self, ip, count, duration, reason):
+
+        # Update a trusted host
+        response = self._command('edittrust %s %i %s %s' % (ip, int(count), duration, reason))
+        return response['data'][0].startswith('Updated'), response['data'][0]
+
     def gtrace_count(self, criteria):
 
         # Get the number of matching glines
