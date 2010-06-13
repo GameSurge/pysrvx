@@ -1395,7 +1395,8 @@ class OpServ():
                      'set_time': matches.group(4),
                      'setter': matches.group(5),
                      'expires': matches.group(6),
-                     'reason': matches.group(7)}
+                     'reason': matches.group(7),
+                     'orig': line}
             trusts.append(trust)
 
         # If we checked a specific ip, we can assume trusts to contain exactly one element
