@@ -1,2 +1,6 @@
 *.pyc
 *.swp
+.idea
+build
+dist
+*egg
