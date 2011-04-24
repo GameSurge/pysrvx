@@ -224,14 +224,14 @@ class SrvX(object):
             # TOKEN NICK COMMAND ARGS...
             tmp = command.split(' ')
             tmp[hide_arg + 2] = '****'
-            self.log.debug('Sending: %s' % ' '.join(tmp))
+            self.log.debug('Sending: %s' % ' '.join(tmp).encode('iso-8859-1'))
         else:
-            self.log.debug('Sending: %s' % command)
+            self.log.debug('Sending: %s' % command.encode('iso-8859-1'))
 
         # Send the command
         response = None
         try:
-            self.socket.send(command) 
+            self.socket.send(command.encode('iso-8859-1')) 
             if not no_response:
                 response = self.get_response()
         except socket_error as err:
