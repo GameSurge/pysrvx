@@ -22,10 +22,13 @@ class AuthServ(object):
         return self.srvx.send_command('authserv %s' % command,
                                       hide_arg=hide_arg)
 
-    def accountinfo(self, account):
+    def accountinfo(self, account, nickname=False):
 
         # Retrieve account info
-        response = self._command('accountinfo *%s' % account)
+        if nickname:
+            response = self._command('accountinfo %s' % account)
+        else:
+            response = self._command('accountinfo *%s' % account)
 
         # Bail out if account does not exist
         if response['data'][0].endswith('has not been registered.'):
@@ -42,7 +45,7 @@ class AuthServ(object):
                 'epithet': None,
                 'fakeident': None,
                 'fakehost': None,
-                'cookie' : None}
+                'cookie': None}
 
         # Loop over actual account information
         for line in response['data'][1:]:
@@ -191,7 +194,8 @@ r"^Note ([0-9]+) \(([a-z0-9 ]+) ago by ([^,]+)(?:, expires ([^)]+))?\)$", key)
     def oset(self, account, key=None, value=None):
 
         keys = ['color', 'email', 'info', 'language', 'privmsg', 'tablewith',
-                'width', 'maxlogins', 'password', 'flags', 'level', 'epithet']
+                'width', 'maxlogins', 'password', 'flags', 'level', 'epithet',
+		'title']
 
         if key and key.lower() not in keys:
             raise ValueError, 'Invalid setting'
