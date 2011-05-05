@@ -7,7 +7,7 @@ from chanserv import ChanServ
 from helpserv import HelpServ, HelpServBot
 from opserv import OpServ
 
-__version__ = "0.2"
+__version__ = "0.3"
 
 # If run via the command line
 if __name__ == '__main__':

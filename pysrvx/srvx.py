@@ -55,30 +55,46 @@ class SrvX(object):
         # By default we're not authenticated
         self.authenticated = False
 
+        # Settings
+        self.host = host
+        self.port = port
+        self.password = password
+        self.auth_user = auth_user
+        self.auth_password = auth_password
+        self.bind = bind
+
+        # Connect on creation
+        self.connect()
+
+    def connect(self):
+        """
+        Connect to the QServer
+
+        """
         # Create our socket
         self.socket = socket(AF_INET, SOCK_STREAM)
 
         # If we passed in an ip address to bind to, attempt to bind to it
         if bind:
             try:
-                self.socket.bind((bind, 0))
+                self.socket.bind((self.bind, 0))
             except socket_error as err:
                 raise ConnectionError("Could not bind socket to %s: %s" % \
-                                      (bind, err))
+                                      (self.bind, err))
 
         # Connect to QServer
-        self.log.info("Connecting to %s:%i", host, port)
+        self.log.info("Connecting to %s:%i", self.host, self.port)
         try:
-            self.socket.connect((host, port))
+            self.socket.connect((self.host, self.port))
         except socket_error as err:
             raise ConnectionError("Could not connect to %s:%i: %s" % \
-                                  (host, port, err))
+                                  (self.host, self.port, err))
 
         # Send the QServer username and password
-        self._send_command('PASS %s' % password, True)
+        self._send_command('PASS %s' % self.password, True)
 
         # Authenticate
-        self._authenticate(auth_user, auth_password)
+        self._authenticate(self.auth_user, self.auth_password)
 
     def _authenticate(self, username, password):
         """
@@ -231,7 +247,7 @@ class SrvX(object):
         # Send the command
         response = None
         try:
-            self.socket.send(command.encode('iso-8859-1')) 
+            self.socket.send(command.encode('iso-8859-1'))
             if not no_response:
                 response = self.get_response()
         except socket_error as err:

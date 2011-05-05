@@ -9,7 +9,7 @@ module. More more information on SrvX visit http://www.srvx.net
 """
 
 setup(name='pysrvx',
-      version='0.2',
+      version='0.3',
       description='QServer client library',
       long_description=long_description,
       author='Gavin M. Roy',
