@@ -75,7 +75,7 @@ class SrvX(object):
         self.socket = socket(AF_INET, SOCK_STREAM)
 
         # If we passed in an ip address to bind to, attempt to bind to it
-        if bind:
+        if self.bind:
             try:
                 self.socket.bind((self.bind, 0))
             except socket_error as err:
