@@ -312,3 +312,7 @@ r"^Note ([0-9]+) \(([a-z0-9 ]+) ago by ([^,]+)(?:, expires ([^)]+))?\)$", key)
             users.append(parts[1])
 
         return users
+
+    def status(self):
+
+        return self._command("status")
