@@ -195,7 +195,7 @@ r"^Note ([0-9]+) \(([a-z0-9 ]+) ago by ([^,]+)(?:, expires ([^)]+))?\)$", key)
 
         keys = ['color', 'email', 'info', 'language', 'privmsg', 'tablewith',
                 'width', 'maxlogins', 'password', 'flags', 'level', 'epithet',
-		'title']
+		        'title', 'fakehost']
 
         if key and key.lower() not in keys:
             raise ValueError, 'Invalid setting'
