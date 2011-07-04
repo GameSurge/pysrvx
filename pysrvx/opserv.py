@@ -3,7 +3,11 @@ OpServ Support
 
 """
 from pysrvx.srvx import SrvX
-from re import match
+import re
+
+# Uptime: 10 weeks and 6 days (33269954 lines p...d, CPU time 7106.65u/4144.99s)
+STATS_UPTIME_RE = re.compile('Uptime: ([0-9]{1,3}) weeks and ([0-7]) days \
+\(([0-9]+) lines processed, CPU time ([0-9.u]+)/([0-9.s]+)\)')
 
 
 class OpServ(object):
@@ -77,7 +81,7 @@ class OpServ(object):
                     info['created'] = int(line.split(' (')[1][0:-1])
 
                 elif line[0:6] == 'Modes:': # Modes: [+modes][; bad-word channel]
-                    matches = match(r"^Modes: (?:(\+[a-zA-Z]+)((?: \S+?)*))?(; bad-word channel)?$", line)
+                    matches = re.match(r"^Modes: (?:(\+[a-zA-Z]+)((?: \S+?)*))?(; bad-word channel)?$", line)
                     if matches is None:
                         self.srvx.log.warning('Unexpected mode line: "%s"',
                                               line)
@@ -96,7 +100,7 @@ class OpServ(object):
                                 info['key'] = mode_args.pop(0)
 
                 elif line[0:5] == 'Topic': # Topic (set by [...], Tue Jan 19 06:27:40 2010): [...]
-                    matches = match(r"^Topic \(set by ([^,]*), ([^)]+)\): (.*)$", line)
+                    matches = re.match(r"^Topic \(set by ([^,]*), ([^)]+)\): (.*)$", line)
                     if matches is None:
                         continue
                     info['topic_by'] = matches.group(1)
@@ -108,7 +112,7 @@ class OpServ(object):
 
             elif state == 1: # Bans
 
-                matches = match(r"^(\S+) by (\S+) \(([^)]+)\)$", line)
+                matches = re.match(r"^(\S+) by (\S+) \(([^)]+)\)$", line)
                 if matches is None:
                     self.srvx.log.warning('Unexpected ban line: "%s"' % line)
                     continue
@@ -120,7 +124,7 @@ class OpServ(object):
 
             elif state == 2: # Users
 
-                matches = match(r"^ ([@+ ])([^:]+)(?::([0-9]+))? \(([^@]+)@([^)]+)\)$", line)
+                matches = re.match(r"^ ([@+ ])([^:]+)(?::([0-9]+))? \(([^@]+)@([^)]+)\)$", line)
                 if matches is None:
                     self.srvx.log.warning('Unexpected user line: "%s"' % line)
                     continue
@@ -195,7 +199,7 @@ class OpServ(object):
         # { "OSMSG_GTRACE_FOREVER", "%1$s (issued %2$s ago by %3$s, lastmod %4$s ago, never expires, lifetime %7$s): %6$s" }, # not used by srvx right now (bug)
         # { "OSMSG_GTRACE_EXPIRED", "%1$s (issued %2$s ago by %3$s, lastmod %4$s ago, expired %5$s ago, lifetime %7$s): %6$s" },
 
-        matches = match(r"^(\S+) \(issued ([a-z0-9 ]+) ago by (\S+), lastmod ([a-z0-9<> ]+) ago, (expire[sd]) ([a-z0-9 ]+), lifetime ([a-z0-9 ]+)\)\: (.*)$", line)
+        matches = re.match(r"^(\S+) \(issued ([a-z0-9 ]+) ago by (\S+), lastmod ([a-z0-9<> ]+) ago, (expire[sd]) ([a-z0-9 ]+), lifetime ([a-z0-9 ]+)\)\: (.*)$", line)
 
         if matches is None:
             self.srvx.log.warning('Unexpected gline line: "%s"' % line)
@@ -308,7 +312,7 @@ class OpServ(object):
             begin = 0
 
         for line in response['data'][begin:]:
-            matches = match(r"^(\S+) \((limit (\d+)|no limit); set ([a-z0-9 ]+) ago by (\S+); expires ([^:]+): (.+)\)$", line)
+            matches = re.match(r"^(\S+) \((limit (\d+)|no limit); set ([a-z0-9 ]+) ago by (\S+); expires ([^:]+): (.+)\)$", line)
             if matches is None:
                 self.srvx.log.warning('Unexpected trust line: "%s"' % line)
                 continue
@@ -389,3 +393,12 @@ class OpServ(object):
             users.append(user)
 
         return users
+
+    def stats_uptime(self):
+        """Performs a stats update and returns a tuple of data.
+
+        :returns: Tuple of uptime days, weeks, lines processed, cpu time
+        """
+        # Get a gline or the gline count (depending on ip)
+        response = self._command("stats uptime")
+        return  STATS_UPTIME_RE.match(response['data'][0]).groups()
