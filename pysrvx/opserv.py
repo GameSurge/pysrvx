@@ -6,8 +6,8 @@ from pysrvx.srvx import SrvX
 import re
 
 # Uptime: 10 weeks and 6 days (33269954 lines p...d, CPU time 7106.65u/4144.99s)
-STATS_UPTIME_RE = re.compile('Uptime: ([0-9]{1,3}) weeks and ([0-7]) days \
-\(([0-9]+) lines processed, CPU time ([0-9.u]+)/([0-9.s]+)\)')
+r = 'Uptime: (.*) \(([0-9]+) lines processed, CPU time ([0-9.u]+)/([0-9.s]+)\)'
+STATS_UPTIME_RE = re.compile(r)
 
 
 class OpServ(object):
@@ -401,4 +401,7 @@ class OpServ(object):
         """
         # Get a gline or the gline count (depending on ip)
         response = self._command("stats uptime")
-        return  STATS_UPTIME_RE.match(response['data'][0]).groups()
+        try:
+            return STATS_UPTIME_RE.match(response['data'][0]).groups()
+        except AttributeError:
+            return None
