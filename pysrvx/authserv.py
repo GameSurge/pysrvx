@@ -34,7 +34,7 @@ class AuthServ(object):
         if response['data'][0].endswith('has not been registered.'):
             return None
 
-        if repsonse['data'][0].find('must first authenticate') > 0:
+        if response['data'][0].find('must first authenticate') > 0:
             return None
 
         # Get account name "Account information for NAME:"
