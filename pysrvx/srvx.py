@@ -2,6 +2,7 @@
 srvx is the main QServer communication routines
 
 """
+from __future__ import unicode_literals
 from logging import getLogger
 from random import randint
 from socket import socket, error as socket_error, AF_INET,  SOCK_STREAM
@@ -125,8 +126,17 @@ class SrvX(object):
         """Return a token generated from a random number"""
         return 'GS%05d' % randint(0,65535)
 
-    def get_response(self):
+    @staticmethod
+    def decode_string(string):
+        try:
+             return string.decode('UTF-8')
+        except UnicodeDecodeError:
+            try:
+                return string.decode('iso-8859-1')
+            except UnicodeDecodeError:
+                return string.decode('ascii', 'ignore')
 
+    def get_response(self):
         data = ''
         command_length = 0
         response_done = False
@@ -140,12 +150,12 @@ class SrvX(object):
             if not tmp:
                 raise NotConnected
 
-            # Append the response buffer
-            self.response += tmp
-
             # If we've not received the line feed delimiter, keep receiving
-            if self.response[-1] != '\n':
+            if not tmp.endswith(b'\n'):
                 continue
+
+            # Append the response buffer
+            self.response += self.decode_string(tmp)
 
             # Split the content into a list
             lines = self.response.split('\n')
@@ -203,7 +213,7 @@ class SrvX(object):
         lines = data.split('\n')
         for line in lines:
 
-            if not response.has_key('from'):
+            if 'from' not in response:
                 parts = line.split(' ')
                 response['from'] = parts[0]
 
@@ -240,14 +250,14 @@ class SrvX(object):
             # TOKEN NICK COMMAND ARGS...
             tmp = command.split(' ')
             tmp[hide_arg + 2] = '****'
-            self.log.debug('Sending: %s' % ' '.join(tmp).encode('iso-8859-1'))
+            self.log.debug('Sending: %s' % ' '.join(tmp).encode('UTF-8'))
         else:
-            self.log.debug('Sending: %s' % command.encode('iso-8859-1'))
+            self.log.debug('Sending: %s' % command.encode('UTF-8'))
 
         # Send the command
         response = None
         try:
-            self.socket.send(command.encode('iso-8859-1'))
+            self.socket.send(command.encode('UTF-8'))
             if not no_response:
                 response = self.get_response()
         except socket_error as err:
