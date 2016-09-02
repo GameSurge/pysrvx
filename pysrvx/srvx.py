@@ -150,12 +150,12 @@ class SrvX(object):
             if not tmp:
                 raise NotConnected
 
-            # Append the response buffer
-            self.response = self.decode_string(tmp)
-
             # If we've not received the line feed delimiter, keep receiving
-            if self.response[-1] != '\n':
+            if not tmp.endswith(b'\n'):
                 continue
+
+            # Append the response buffer
+            self.response += self.decode_string(tmp)
 
             # Split the content into a list
             lines = self.response.split('\n')
