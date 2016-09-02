@@ -170,7 +170,7 @@ r"^Note ([0-9]+) \(([a-z0-9 ]+) ago by ([^,]+)(?:, expires ([^)]+))?\)$", key)
             return parts[1] != '*' and parts[1] or None
 
         accounts = {}
-        for chunk in (ids[pos:pos + 20] for pos in xrange(0, len(ids), 20)):
+        for chunk in (ids[pos:pos + 20] for pos in range(0, len(ids), 20)):
             response = self._command('checkid %s' % ' '.join(map(str, chunk)))
             for line in response['data']:
                 parts = line.split(' ')
@@ -201,7 +201,7 @@ r"^Note ([0-9]+) \(([a-z0-9 ]+) ago by ([^,]+)(?:, expires ([^)]+))?\)$", key)
 		        'title', 'fakehost']
 
         if key and key.lower() not in keys:
-            raise ValueError, 'Invalid setting'
+            raise ValueError('Invalid setting')
 
         # oset some value or get it or get them all
         if key and key.lower() == 'password' and value:

@@ -1,11 +1,11 @@
 """
 pysrvx Srvx QServer Integration Package
 """
-from srvx import SrvX
-from authserv import AuthServ
-from chanserv import ChanServ
-from helpserv import HelpServ, HelpServBot
-from opserv import OpServ
+from .srvx import SrvX
+from .authserv import AuthServ
+from .chanserv import ChanServ
+from .helpserv import HelpServ, HelpServBot
+from .opserv import OpServ
 
 __version__ = "0.3"
 
@@ -51,14 +51,14 @@ if __name__ == '__main__':
 
     # Make sure they passed in the password and auth string
     if not options.password or not options.auth:
-        print 'Error: missing required parameters'
+        print('Error: missing required parameters')
         parser.print_help()
         sys.exit(1)
 
     # Make sure the auth string is in foo:bar format
     auth = options.auth.split(':')
     if len(auth) < 2:
-        print 'Error: invalid authserv credentials'
+        print('Error: invalid authserv credentials')
         parser.print_help()
         sys.exit(1)
 
@@ -75,7 +75,7 @@ if __name__ == '__main__':
         function_name = args[1]
 
         if class_name == 'helpbot' and not options.helpbot:
-            print 'Error: helpbot needs a helpserv bot nick'
+            print('Error: helpbot needs a helpserv bot nick')
             parser.print_help()
             sys.exit(1)
 
