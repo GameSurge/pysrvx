@@ -1,6 +1,9 @@
 """
 pysrvx Srvx QServer Integration Package
 """
+
+import logging
+
 from .srvx import SrvX, SrvXError
 from .authserv import AuthServ
 from .chanserv import ChanServ
