@@ -5,7 +5,7 @@ from setuptools import setup
 
 long_description = """\
 pysrvx is a pure python client library implementation for the SrvX QServer
-module. More more information on SrvX visit http://www.srvx.net
+module. For more information on SrvX visit http://www.srvx.net
 """
 
 setup(name='pysrvx',
