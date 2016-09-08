@@ -1,36 +1,21 @@
-"""
-ChanServ support
-
-"""
-from pysrvx.srvx import SrvX
-from re import match
+import re
 
 
 class ChanServ(object):
-
     def __init__(self, srvx):
-
-        # Make sure that a srvx object was passed in
-        if isinstance(srvx, SrvX):
-            self.srvx = srvx
-        else:
-            raise ValueError("Did not pass in a SrvX object")
+        self.srvx = srvx
 
     def _command(self, command):
-
-        # Send the command through srvx
         return self.srvx.send_command('chanserv %s' % command)
 
     def access(self, channel, account):
-
         # Access of an account in a channel
         response = self._command('access %s *%s' % (channel, account))
 
-        if response['data'][0] == \
-           'You must provide the name of a channel that exists.':
+        if response['data'][0] == 'You must provide the name of a channel that exists.':
             return 0
 
-        if response['data'][0].find('has not been registered.') != -1:
+        if 'has not been registered.' in response['data'][0]:
             return 0
 
         access = 0
@@ -38,54 +23,39 @@ class ChanServ(object):
             parts = response['data'][0].split(' ')
             access = int(parts[3])
         # Negative access if user is suspended
-        if len(response['data']) > 1 and \
-           response['data'][-1].endswith('has been suspended.'):
+        if len(response['data']) > 1 and response['data'][-1].endswith('has been suspended.'):
             access *= -1
 
         return access
 
     def addcoowner(self, channel, account, force=False):
-
-        # Use the generic adduser function
         return self.adduser(channel, account, 'coowner', force)
 
     def addmaster(self, channel, account, force=False):
-
-        # Use the generic adduser function
         return self.adduser(channel, account, 'master', force)
 
     def addaddop(self, channel, account, force=False):
-
-        # Use the generic adduser function
         return self.adduser(channel, account, 'op', force)
 
     def addowner(self, channel, account, force=False):
-
-        # Use the generic adduser function
         return self.adduser(channel, account, 'owner', force)
 
     def addpeon(self, channel, account, force=False):
-
-        # Use the generic adduser function
         return self.adduser(channel, account, 'peon', force)
 
     def adduser(self, channel, account, level, force=False):
-
         # Run adduser, if the user has access & force is true we clvl him
-        response = self._command('adduser %s *%s %s' % \
-                                 (channel, account, level))
+        response = self._command('adduser %s *%s %s' % (channel, account, level))
 
-        if force and response['data'][0].find('is already on') != -1:
+        if force and 'is already on' in response['data'][0]:
             return self.clvl(channel, account, level)
 
         return response['data'][0].startswith('Added'), response['data'][0]
 
     def bans(self, channel):
-
         # List to hold our bans
         bans = []
 
-        # Send our command to ChanServ
         response = self._command('bans %s' % channel)
 
         # Get the column positions
@@ -107,66 +77,52 @@ class ChanServ(object):
         return bans
 
     def clist(self, channel):
-
-        # Use the generic users function
         return self.users(channel, 'clist')
 
     def clvl(self, channel, account, level, force=False):
-
         # Run clvl, if the user has no access and force is true we adduser him
         response = self._command('clvl %s *%s %s' % (channel, account, level))
 
-        if force and response['data'][0].find('lacks access to') != -1:
+        if force and 'lacks access to' in response['data'][0]:
             return self.adduser(channel, account, level)
 
-        return response['data'][0].find('now has access') != -1, \
-               response['data'][0]
+        return 'now has access' in response['data'][0], response['data'][0]
 
     def csuspend(self, channel, duration, reason, modify=False):
-
         # Suspend channel or modify channel suspended
         if modify:
-            response = self._command('csuspend %s !%s %s' % \
-                                     (channel, duration, reason))
+            response = self._command('csuspend %s !%s %s' % (channel, duration, reason))
             # When modifying a suspension srvx doesn't reply anything
-            if not len(response['data']):
+            if not response['data']:
                 return True, ''
         else:
-            response = self._command('csuspend %s %s %s' % \
-                                     (channel, duration, reason))
+            response = self._command('csuspend %s %s %s' % (channel, duration, reason))
 
-        return response['data'][0].endswith(\
-            'has been temporarily suspended.'), response['data'][0]
+        return response['data'][0].endswith('has been temporarily suspended.'), response['data'][0]
 
     def cunsuspend(self, channel):
-
         # Unsuspend channel
         response = self._command('cunsuspend %s' % channel)
 
-        return response['data'][0].endswith('has been restored.'),\
-               response['data'][0]
+        return response['data'][0].endswith('has been restored.'), response['data'][0]
 
     def deluser(self, channel, account, level=None, strict=False):
-
         # Delete user from channel user list
         # If a level is given, the user must have this level to be deleted
         # If 'strict' is set, the deletion is only considered successful
         # if the user was on the userlist before
 
         if level:
-            response = self._command('deluser %s %s *%s' % \
-                                     (channel, level, account))
+            response = self._command('deluser %s %s *%s' % (channel, level, account))
         else:
-            response = self._command('deluser %s *%s' % \
-                                     (channel, account))
+            response = self._command('deluser %s *%s' % (channel, account))
 
-        if not strict and response['data'][0].find('lacks access to') != -1:
+        if not strict and 'lacks access to' in response['data'][0]:
             return True, response['data'][0]
 
         return response['data'][0].startswith('Deleted '), response['data'][0]
 
     def _dnrsearch_parse(self, response, silent=False):
-
         # Get a list of all do-not-registers
         dnrs = []
 
@@ -182,14 +138,13 @@ class ChanServ(object):
         if response['data'][0] == 'The following do-not-registers were found:':
             del response['data'][0]
 
-        matches = match(r'^Found \d+ matches.$', response['data'][-1])
+        matches = re.match(r'^Found \d+ matches.$', response['data'][-1])
         if matches is not None:
             del response['data'][-1]
 
         for line in response['data']:
-            matches = match(r"^((?:\*|\#)[^\s]+) is do-not-register \(set (\d+\
- \w{3} \d{4}) by ([^\s\;\)]+)(?:\; expires (\d+ \w{3} \d{4})){0,1}\)\:\s(.*)$",
-                            line)
+            matches = re.match(r"^((?:\*|#)[^\s]+) is do-not-register \(set (\d+ \w{3} \d{4}) by ([^\s;\)]+)(?:; "
+                               r"expires (\d+ \w{3} \d{4}))?\):\s(.*)$", line)
 
             if matches is None:
                 if not silent:
@@ -208,37 +163,28 @@ class ChanServ(object):
         return dnrs
 
     def dnr(self, channel=''):
-
-        # Send our command to ChanServ
         response = self._command('noregister %s' % channel)
 
         # Parse it
         return self._dnrsearch_parse(response)
 
     def dnrsearch_count(self, criteria):
-
-        # Send our command to ChanServ
         response = self._command('dnrsearch count %s' % criteria)
 
         # Parse it
-        if response['data'][0] == \
-           "Nothing matched the criteria of your search.":
+        if response['data'][0] == "Nothing matched the criteria of your search.":
             return 0
 
         parts = response['data'][0].split(' ')
         return int(parts[1])
 
     def dnrsearch_print(self, criteria):
-
-        # Send our command to ChanServ
         response = self._command('dnrsearch print %s' % criteria)
 
         # Parse it
         return self._dnrsearch_parse(response)
 
     def dnrsearch_remove(self, criteria):
-
-        # Send our command to ChanServ
         response = self._command('dnrsearch count %s' % criteria)
 
         # Parse it
@@ -249,18 +195,13 @@ class ChanServ(object):
         return int(parts[1])
 
     def giveownership(self, channel, account, force=False):
-
-        # Chanegs Ownership of a channel
-        response = self._command('giveownership %s *%s %s' % \
-                                 (channel, account, force and 'FORCE' or ""))
-        return response['data'][0].find(\
-            'Ownership of %s has been transferred' % channel) != -1, \
-               response['data'][0]
+        response = self._command('giveownership %s *%s %s' % (channel, account, force and 'FORCE' or ""))
+        expected = 'Ownership of %s has been transferred' % channel
+        return expected in response['data'][0], response['data'][0]
 
     def _info_check_dnr(self, line):
-        matches = match(r'^((?:\*|\#)[^\s]+) is do-not-register \(set (\d+ \w\
-{3} \d{4}) by ([^\s\;\)]+)(?:\; expires (\d+ \w{3} \d{4})){0,1}\)\:\s(.*)$',
-                        line)
+        matches = re.match(r'^((?:\*|#)[^\s]+) is do-not-register \(set (\d+ \w{3} \d{4}) by ([^\s;\)]+)(?:; '
+                           r'expires (\d+ \w{3} \d{4}))?\):\s(.*)$', line)
 
         if matches is None:
             return False
@@ -274,15 +215,11 @@ class ChanServ(object):
         return dnr
 
     def info(self, channel):
-
-        # Send our command to ChanServ
         response = self._command('info %s' % channel)
 
-        if response['data'][0] == \
-           'You must provide the name of a channel that exists.':
+        if response['data'][0] == 'You must provide the name of a channel that exists.':
             return None
-        elif response['data'][0].endswith(\
-            'has not been registered with ChanServ.'):
+        elif response['data'][0].endswith('has not been registered with ChanServ.'):
             return None
 
         # Build the initial dictionary
@@ -341,10 +278,10 @@ class ChanServ(object):
                 info['ban_count'] = int(value)
 
             elif key == 'Visited':
-                info['visited'] = value[:-1] # strip trailing dot
+                info['visited'] = value[:-1]  # strip trailing dot
 
             elif key == 'Registered':
-                info['registered'] = value[:-1] # strip trailing dot
+                info['registered'] = value[:-1]  # strip trailing dot
 
             elif key == 'Registrar':
                 info['registrar'] = value
@@ -358,12 +295,9 @@ class ChanServ(object):
         return info
 
     def mlist(self, channel):
-
-        # Use the generic users function
         return self.users(channel, 'mlist')
 
     def mode(self, channel, modes):
-
         # Set mode of channel
         response = self._command('mode %s %s' % (channel, modes))
 
@@ -372,11 +306,9 @@ class ChanServ(object):
     def notes(self, channel):
         response = self._command('note %s' % channel)
 
-        if response['data'][0] == 'You must provide the name of a channel ' + \
-            'that exists.':
+        if response['data'][0] == 'You must provide the name of a channel ' + 'that exists.':
             return None
-        elif response['data'][0].endswith('has not been registered with ' + \
-            'ChanServ.'):
+        elif response['data'][0].endswith('has not been registered with ' + 'ChanServ.'):
             return None
 
         if response['data'][0].startswith('There are no (visible) notes for'):
@@ -384,20 +316,17 @@ class ChanServ(object):
 
         notes = {}
         for line in response['data'][1:-1]:
-            matches = match(r'^(\S+) \(set by ([^)]+)\)\: (.+)$', line)
+            matches = re.match(r'^(\S+) \(set by ([^)]+)\): (.+)$', line)
             if matches is None:
                 self.srvx.log.warning('Unexpected mode line: "%s"' % line)
                 continue
 
-            note = dict()
-            note['setter'] = matches.group(2)
-            note['text'] = matches.group(3)
+            note = {'setter': matches.group(2), 'text': matches.group(3)}
             notes[matches.group(1)] = note
 
         return notes
 
     def note(self, channel, type, text=None):
-
         # Run command
         if text:
             response = self._command('note %s %s %s' % (channel, type, text))
@@ -413,37 +342,27 @@ class ChanServ(object):
         if response['data'][0] == 'Note type %s does not exist.' % type:
             return False
 
-        if response['data'][0].startswith('Channel %s does not have a note' %
-            channel):
+        if response['data'][0].startswith('Channel %s does not have a note' % channel):
             return None
 
-        matches = match(r'^(\S+) \(set by ([^)]+)\)\: (.+)$',
-            response['data'][-1])
+        matches = re.match(r'^(\S+) \(set by ([^)]+)\): (.+)$', response['data'][-1])
         if matches is not None:
             return matches.group(3)
 
         return False
 
     def say(self, channel, message):
-
-        # Send the say command, we don't care about the response
         self._command('say %s %s' % (channel, message))
 
     def olist(self, channel):
-
-        # Use the generic users function
         return self.users(channel, 'olist')
 
     def plist(self, channel):
-
-        # Use the generic users function
         return self.users(channel, 'plist')
 
     def register(self, channel, account, force=False):
-
         # Register a channel
-        response = self._command('register %s *%s %s' %
-            (channel, account, force and 'FORCE' or ''))
+        response = self._command('register %s *%s %s' % (channel, account, force and 'FORCE' or ''))
 
         # We first check for dnrs since they can end with arbitrary strings
         # and would make checking for other things harder
@@ -464,16 +383,13 @@ class ChanServ(object):
         if line == 'You must provide a valid channel name.':
             return False, {'reason': 'bad_name'}, line
 
-        if line.find('owns enough channels') != -1:
+        if 'owns enough channels' in line:
             return False, {'reason': 'too_many'}, line
 
-        if line.find('now has ownership of') or \
-            line.find('now have ownership of'):
+        if 'now has ownership of' in line or 'now have ownership of' in line:
             return True, None, line
 
     def users(self, channel, list_type='users'):
-
-        # List to put users in
         users = []
 
         # Get the userlist data
@@ -490,7 +406,6 @@ class ChanServ(object):
 
         # Loop through the response from the 3rd line
         for line in response['data'][2:len(response['data'])]:
-
             if line[0:4] != 'None':
                 users.append({'access': line[c1:c2].strip(),
                               'account': line[c2:c3 - 1].strip(),
@@ -500,6 +415,4 @@ class ChanServ(object):
         return users
 
     def wlist(self, channel):
-
-        # Use the generic users function
         return self.users(channel, 'wlist')

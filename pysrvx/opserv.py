@@ -1,33 +1,17 @@
-"""
-OpServ Support
-
-"""
-from pysrvx.srvx import SrvX
 import re
 
 # Uptime: 10 weeks and 6 days (33269954 lines p...d, CPU time 7106.65u/4144.99s)
-r = 'Uptime: (.*) \(([0-9]+) lines processed, CPU time ([0-9.u]+)/([0-9.s]+)\)'
-STATS_UPTIME_RE = re.compile(r)
+STATS_UPTIME_RE = re.compile(r'Uptime: (.*) \(([0-9]+) lines processed, CPU time ([0-9.u]+)/([0-9.s]+)\)')
 
 
 class OpServ(object):
-
-
     def __init__(self, srvx):
-
-        # Make sure that a srvx object was passed in
-        if isinstance(srvx, SrvX):
-            self.srvx = srvx
-        else:
-            raise ValueError("Did not pass in a SrvX object")
+        self.srvx = srvx
 
     def _command(self, command):
-
-        # Run the command in the srvx object
         return self.srvx.send_command('opserv %s' % command)
 
     def access(self, account, level=None):
-
         # Get the opserv access level of an account
         if level is None:
             response = self._command('access *%s' % account)
@@ -49,13 +33,11 @@ class OpServ(object):
         return int(parts[4])
 
     def addtrust(self, ip, count, duration, reason):
-
         # Add a trusted host
         response = self._command("addtrust %s %i %s %s" % (ip, int(count), duration, reason))
         return response['data'][0].startswith('Added'), response['data'][0]
 
     def chaninfo(self, channel):
-
         # Send our command to OpServ; always request full userlist
         response = self._command('chaninfo %s users' % channel)
 
@@ -75,12 +57,11 @@ class OpServ(object):
                 state = 1
             elif line[0:5] == 'Users':
                 state = 2
-            elif not state: # Information
-
-                if line[0:11] == 'Created on:': # Created on: .... (1234567890)
+            elif not state:  # Information
+                if line[0:11] == 'Created on:':  # Created on: .... (1234567890)
                     info['created'] = int(line.split(' (')[1][0:-1])
 
-                elif line[0:6] == 'Modes:': # Modes: [+modes][; bad-word channel]
+                elif line[0:6] == 'Modes:':  # Modes: [+modes][; bad-word channel]
                     matches = re.match(r"^Modes: (?:(\+[a-zA-Z]+)((?: \S+?)*))?(; bad-word channel)?$", line)
                     if matches is None:
                         self.srvx.log.warning('Unexpected mode line: "%s"',
@@ -99,7 +80,7 @@ class OpServ(object):
                             elif mode == 'k':
                                 info['key'] = mode_args.pop(0)
 
-                elif line[0:5] == 'Topic': # Topic (set by [...], Tue Jan 19 06:27:40 2010): [...]
+                elif line[0:5] == 'Topic':  # Topic (set by [...], Tue Jan 19 06:27:40 2010): [...]
                     matches = re.match(r"^Topic \(set by ([^,]*), ([^)]+)\): (.*)$", line)
                     if matches is None:
                         continue
@@ -110,8 +91,7 @@ class OpServ(object):
                     self.srvx.log.warning('Unexpected line: "%s"',
                                           line)
 
-            elif state == 1: # Bans
-
+            elif state == 1:  # Bans
                 matches = re.match(r"^(\S+) by (\S+) \(([^)]+)\)$", line)
                 if matches is None:
                     self.srvx.log.warning('Unexpected ban line: "%s"' % line)
@@ -122,8 +102,7 @@ class OpServ(object):
                        'time': matches.group(3)}
                 bans.append(ban)
 
-            elif state == 2: # Users
-
+            elif state == 2:  # Users
                 matches = re.match(r"^ ([@+ ])([^:]+)(?::([0-9]+))? \(([^@]+)@([^)]+)\)$", line)
                 if matches is None:
                     self.srvx.log.warning('Unexpected user line: "%s"' % line)
@@ -140,11 +119,9 @@ class OpServ(object):
 
         info['bans'] = bans
         info['users'] = users
-
         return info
 
     def csearch_count(self, criteria):
-
         # Get the number of matching channels
         response = self._command("csearch count %s" % criteria)
         if response['data'][0] == 'Nothing matched the criteria of your search.':
@@ -153,7 +130,6 @@ class OpServ(object):
         return int(response['data'][0].split(' ')[1])
 
     def csearch_print(self, criteria):
-
         # Get the matching channels
         channels = {}
         response = self._command("csearch print %s" % criteria)
@@ -168,19 +144,16 @@ class OpServ(object):
         return channels
 
     def deltrust(self, ip):
-
         # Remove a trusted host
         response = self._command("deltrust %s" % ip)
         return response['data'][0] == 'Removed trusted hosts from the trusted-hosts list.'
 
     def edittrust(self, ip, count, duration, reason):
-
         # Update a trusted host
         response = self._command('edittrust %s %i %s %s' % (ip, int(count), duration, reason))
         return response['data'][0].startswith('Updated'), response['data'][0]
 
     def gtrace_count(self, criteria):
-
         # Get the number of matching glines
         response = self._command("gtrace count %s" % criteria)
         if response['data'][0] == 'Nothing matched the criteria of your search.':
@@ -189,7 +162,6 @@ class OpServ(object):
         return int(response['data'][0].split(' ')[1])
 
     def _gline_parse(self, line):
-
         # The following glines were found:
         # ronald@*.gline.de (issued 28 minutes and 55 seconds ago by cltx, lastmod 7 minutes and 44 seconds ago, expires 1 day and 23 hours, lifetime 6 days and 23 hours): Replace
         # miriam@gline.de (issued 29 minutes and 23 seconds ago by cltx, lastmod 29 minutes and 23 seconds ago, expires 6 days and 23 hours, lifetime 6 days and 23 hours): Very bad Person
@@ -199,7 +171,8 @@ class OpServ(object):
         # { "OSMSG_GTRACE_FOREVER", "%1$s (issued %2$s ago by %3$s, lastmod %4$s ago, never expires, lifetime %7$s): %6$s" }, # not used by srvx right now (bug)
         # { "OSMSG_GTRACE_EXPIRED", "%1$s (issued %2$s ago by %3$s, lastmod %4$s ago, expired %5$s ago, lifetime %7$s): %6$s" },
 
-        matches = re.match(r"^(\S+) \(issued ([a-z0-9 ]+) ago by (\S+), lastmod ([a-z0-9<> ]+) ago, (expire[sd]) ([a-z0-9 ]+), lifetime ([a-z0-9 ]+)\)\: (.*)$", line)
+        matches = re.match(r"^(\S+) \(issued ([a-z0-9 ]+) ago by (\S+), lastmod ([a-z0-9<> ]+) ago, (expire[sd]) "
+                           r"([a-z0-9 ]+), lifetime ([a-z0-9 ]+)\)\: (.*)$", line)
 
         if matches is None:
             self.srvx.log.warning('Unexpected gline line: "%s"' % line)
@@ -219,7 +192,6 @@ class OpServ(object):
         return gline
 
     def gtrace_print(self, criteria):
-
         # Get a list of all do-not-registers
         glines = []
 
@@ -236,7 +208,6 @@ class OpServ(object):
         return glines
 
     def stats_bad(self, name=None):
-
         # Check if the given (channel) name is bad
         if name:
             response = self._command('stats bad %s' % name)
@@ -259,7 +230,6 @@ class OpServ(object):
         return badwords, exempts
 
     def stats_email(self, email=None):
-
         # Check if the given email is banned
         if email:
             response = self._command('stats email %s' % email)
@@ -282,7 +252,6 @@ class OpServ(object):
         return emails
 
     def stats_glines(self, ip=None):
-
         # Get a gline or the gline count (depending on ip)
         response = self._command("stats glines %s" % (ip or ''))
 
@@ -296,7 +265,6 @@ class OpServ(object):
         return self._gline_parse(response['data'][0])
 
     def stats_trusted(self, ip=None):
-
         # Get a list of trusted hosts
         trusts = []
         response = self._command("stats trusted %s" % (ip or ''))
@@ -308,11 +276,12 @@ class OpServ(object):
         # 192.168.2.1 (limit 10; set 2 minutes and 41 seconds ago by cltx; expires 23 hours and 57 minutes: test bla)
         # 192.168.2.2 (no limit; set 2 minutes and 40 seconds ago by cltx; expires never: test bla)
         begin = 1
-        if ip is not None: # "List of trusted hosts:" is only shown if not ip is given
+        if ip is not None:  # "List of trusted hosts:" is only shown if not ip is given
             begin = 0
 
         for line in response['data'][begin:]:
-            matches = re.match(r"^(\S+) \((limit (\d+)|no limit); set ([a-z0-9 ]+) ago by (\S+); expires ([^:]+): (.+)\)$", line)
+            matches = re.match(
+                r"^(\S+) \((limit (\d+)|no limit); set ([a-z0-9 ]+) ago by (\S+); expires ([^:]+): (.+)\)$", line)
             if matches is None:
                 self.srvx.log.warning('Unexpected trust line: "%s"' % line)
                 continue
@@ -330,7 +299,6 @@ class OpServ(object):
         return ip and trusts[0] or trusts
 
     def trace(self, action, criteria):
-
         # Get the number of matching users
         response = self._command('trace %s %s' % (action, criteria))
         if response['data'][0] == 'Nothing matched the criteria of your search.':
@@ -343,8 +311,7 @@ class OpServ(object):
             return 0
         elif response['data'][0].startswith('Invalid criteria:'):
             return 0
-        elif response['data'][0].startswith('Channel with name ') and \
-             response['data'][0].endswith('does not exist.'):
+        elif response['data'][0].startswith('Channel with name ') and response['data'][0].endswith('does not exist.'):
             return 0
 
         return int(response['data'][0].split(' ')[1])
@@ -359,7 +326,6 @@ class OpServ(object):
         return self.trace('kill', criteria)
 
     def trace_print(self, criteria):
-
         response = self._command('trace print %s' % criteria)
         if response['data'][0] == 'Nothing matched the criteria of your search.':
             return []
@@ -395,9 +361,9 @@ class OpServ(object):
         return users
 
     def stats_uptime(self):
-        """Performs a stats update and returns a tuple of data.
+        """Perform a stats update and return a tuple of data.
 
-        :returns: Tuple of uptime days, weeks, lines processed, cpu time
+        :return: Tuple of uptime days, weeks, lines processed, cpu time
         """
         # Get a gline or the gline count (depending on ip)
         response = self._command("stats uptime")

@@ -1,29 +1,14 @@
-"""
-For interfacing with AuthServ
-
-"""
-from pysrvx.srvx import SrvX
-from re import match
+import re
 
 
 class AuthServ(object):
-
     def __init__(self, srvx):
-
-        # Make sure that a srvx object was passed in
-        if isinstance(srvx, SrvX):
-            self.srvx = srvx
-        else:
-            raise ValueError("Did not pass in a SrvX object")
+        self.srvx = srvx
 
     def _command(self, command, hide_arg=None):
-
-        # Run the command in the srvx object
-        return self.srvx.send_command('authserv %s' % command,
-                                      hide_arg=hide_arg)
+        return self.srvx.send_command('authserv %s' % command, hide_arg=hide_arg)
 
     def accountinfo(self, account, nickname=False):
-
         # Retrieve account info
         if nickname:
             response = self._command('accountinfo %s' % account)
@@ -121,21 +106,17 @@ class AuthServ(object):
                     info['nicks'] += value.split(' ')
 
                 elif key == 'Cookie':
-                    matches = match(\
-r"There is currently an? ([a-z ]+) cookie issued", value)
+                    matches = re.match(r"There is currently an? ([a-z ]+) cookie issued", value)
                     if matches is None:
-                        self.srvx.log.warning('Unexpected cookie line: "%s"',
-                                              line)
+                        self.srvx.log.warning('Unexpected cookie line: "%s"', line)
                         continue
 
                     info['cookie'] = matches.group(1)
 
                 elif key[0:5] == 'Note ':
-                    matches = match(\
-r"^Note ([0-9]+) \(([a-z0-9 ]+) ago by ([^,]+)(?:, expires ([^)]+))?\)$", key)
+                    matches = re.match(r"^Note ([0-9]+) \(([a-z0-9 ]+) ago by ([^,]+)(?:, expires ([^)]+))?\)$", key)
                     if matches is None:
-                        self.srvx.log.warning('Unexpected note line: "%s"',
-                                              line)
+                        self.srvx.log.warning('Unexpected note line: "%s"', line)
                         continue
 
                     note = {'id': int(matches.group(1)),
@@ -156,13 +137,11 @@ r"^Note ([0-9]+) \(([a-z0-9 ]+) ago by ([^,]+)(?:, expires ([^)]+))?\)$", key)
         return info
 
     def checkemail(self, account, email):
-
         # Check if the account email is the given one
         response = self._command('checkemail *%s %s' % (account, email))
         return response['data'][0] == 'Yes.'
 
     def checkid(self, ids):
-
         # Check given account IDs and return their account names if they exist
         if not isinstance(ids, list):
             response = self._command('checkid %s' % ids)
@@ -179,42 +158,33 @@ r"^Note ([0-9]+) \(([a-z0-9 ]+) ago by ([^,]+)(?:, expires ([^)]+))?\)$", key)
         return accounts
 
     def checkpass(self, account, password):
-
         # Check to see if the account and password are valid in returning bool
         response = self._command('checkpass %s %s' % (account, password),
                                  hide_arg=2)
         return response['data'][0] == 'Yes.'
 
     def oregister(self, account, password, email=None, mask=None):
-
         # Register a new AuthServ account
-        response = self._command('oregister %s %s %s %s' % \
+        response = self._command('oregister %s %s %s %s' %
                                  (account, password, mask and mask or '*',
                                   email and email or ""), hide_arg=2)
-        return response['data'][0] == 'Account has been registered.', \
-               response['data'][0]
+        return response['data'][0] == 'Account has been registered.', response['data'][0]
 
     def oset(self, account, key=None, value=None):
-
         keys = ['color', 'email', 'info', 'language', 'privmsg', 'tablewith',
                 'width', 'maxlogins', 'password', 'flags', 'level', 'epithet',
-		        'title', 'fakehost']
+                'title', 'fakehost']
 
         if key and key.lower() not in keys:
             raise ValueError('Invalid setting')
 
         # oset some value or get it or get them all
         if key and key.lower() == 'password' and value:
-            response = self._command('oset *%s %s %s' % \
-                                     (account, key and key or "",
-                                      value and value or ""), hide_arg=3)
+            response = self._command('oset *%s %s %s' % (account, key or "", value or ""), hide_arg=3)
         else:
-            response = self._command('oset *%s %s %s' % \
-                                     (account, key and key or "",
-                                      value and value or ""))
+            response = self._command('oset *%s %s %s' % (account, key or "", value or ""))
 
-        if response['data'][0].endswith(\
-            'outranks you (command has no effect).'):
+        if response['data'][0].endswith('outranks you (command has no effect).'):
             return False, response['data'][0]
 
         if response['data'][0].endswith('is an invalid account setting.'):
@@ -230,13 +200,13 @@ r"^Note ([0-9]+) \(([a-z0-9 ]+) ago by ([^,]+)(?:, expires ([^)]+))?\)$", key)
             sets = {}
             for line in response['data'][1:]:
                 c2 = line.find(':')
-                if line[c2+1:].strip() == 'Not set.':
+                if line[c2 + 1:].strip() == 'Not set.':
                     sets[line[0:c2].lower()] = None
                 else:
-                    sets[line[0:c2].lower()] = line[c2+1:].strip()
+                    sets[line[0:c2].lower()] = line[c2 + 1:].strip()
             return True, sets
 
-        if response['data'][0].find(':') == -1:
+        if ':' not in response['data'][0]:
             return False, response['data'][0]
 
         parts = response['data'][0].split(':')
@@ -249,46 +219,30 @@ r"^Note ([0-9]+) \(([a-z0-9 ]+) ago by ([^,]+)(?:, expires ([^)]+))?\)$", key)
         return True, parts[1].strip()
 
     def oset_email(self, account, value=None):
-
-        # Use Generic Function
         return self.oset(account, 'email', value)
 
     def oset_flags(self, account, value=None):
-
-        # Use Generic Function
         return self.oset(account, 'flags', value)
 
     def oset_level(self, account, value=None):
-
-        # Use Generic Function
         return self.oset(account, 'level', value)
 
     def oset_password(self, account, value=None):
-
-        # Use Generic Function
         return self.oset(account, 'password', value)
 
     def ounregister(self, account, force=False):
-
-        # Remove an Account from the network
-        response = self._command('ounregister *%s %s' % \
-                                 (account, force and 'FORCE' or ""))
-        return response['data'][0].find('been unregistered.') != -1, \
-               response['data'][0]
+        # Remove an account from the network
+        response = self._command('ounregister *%s %s' % (account, force and 'FORCE' or ""))
+        return 'been unregistered.' in response['data'][0], response['data'][0]
 
     def rename(self, account, newaccount):
-
-        # Rename Account
         response = self._command('rename *%s %s' % (account, newaccount))
-        return response['data'][0].find(\
-            'account name has been changed') != -1, response['data'][0]
+        return 'account name has been changed' in response['data'][0], response['data'][0]
 
     def search_count(self, criteria):
-
         # Get the number of matching users
         response = self._command("search count %s" % criteria)
-        if response['data'][0] == \
-           'Nothing matched the criteria of your search.':
+        if response['data'][0] == 'Nothing matched the criteria of your search.':
             return 0
         elif response['data'][0].endswith('is an invalid search criteria.'):
             return 0
@@ -297,13 +251,11 @@ r"^Note ([0-9]+) \(([a-z0-9 ]+) ago by ([^,]+)(?:, expires ([^)]+))?\)$", key)
         return int(response['data'][0].split(' ')[1])
 
     def search_print(self, criteria):
-
         # Get the matching users
         users = []
         response = self._command("search print %s" % criteria)
 
-        if response['data'][0] == \
-           'Nothing matched the criteria of your search.':
+        if response['data'][0] == 'Nothing matched the criteria of your search.':
             return []
         elif response['data'][0].endswith('is an invalid search criteria.'):
             return []
@@ -317,5 +269,4 @@ r"^Note ([0-9]+) \(([a-z0-9 ]+) ago by ([^,]+)(?:, expires ([^)]+))?\)$", key)
         return users
 
     def status(self):
-
         return self._command("status")

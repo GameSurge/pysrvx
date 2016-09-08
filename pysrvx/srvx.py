@@ -3,9 +3,10 @@ srvx is the main QServer communication routines
 
 """
 from __future__ import unicode_literals
+
 from logging import getLogger
 from random import randint
-from socket import socket, error as socket_error, AF_INET,  SOCK_STREAM
+from socket import socket, error as socket_error, AF_INET, SOCK_STREAM
 
 
 # Exceptions
@@ -35,11 +36,8 @@ class QServerSecurityViolation(SrvXError):
 
 # Core class for communicating with QServer
 class SrvX(object):
-
-    def __init__(self, host='127.0.0.1', port=7702, password=None,
-                 auth_user=None, auth_password=None, bind=None):
-        """
-        Create a core SrvX object for communicating with QServer
+    def __init__(self, host='127.0.0.1', port=7702, password=None, auth_user=None, auth_password=None, bind=None):
+        """Create a core SrvX object for communicating with QServer
 
         Parameters:
 
@@ -72,10 +70,7 @@ class SrvX(object):
         self.connect()
 
     def connect(self):
-        """
-        Connect to the QServer
-
-        """
+        """Connect to the QServer"""
         # Create our socket
         self.socket = socket(AF_INET, SOCK_STREAM)
 
@@ -84,16 +79,14 @@ class SrvX(object):
             try:
                 self.socket.bind((self.bind, 0))
             except socket_error as err:
-                raise ConnectionError("Could not bind socket to %s: %s" % \
-                                      (self.bind, err))
+                raise ConnectionError("Could not bind socket to %s: %s" % (self.bind, err))
 
         # Connect to QServer
         self.log.info("Connecting to %s:%i", self.host, self.port)
         try:
             self.socket.connect((self.host, self.port))
         except socket_error as err:
-            raise ConnectionError("Could not connect to %s:%i: %s" % \
-                                  (self.host, self.port, err))
+            raise ConnectionError("Could not connect to %s:%i: %s" % (self.host, self.port, err))
 
         # Send the QServer username and password
         self._send_command('PASS %s' % self.password, True)
@@ -102,8 +95,7 @@ class SrvX(object):
         self._authenticate(self.auth_user, self.auth_password)
 
     def _authenticate(self, username, password):
-        """
-        Authenticate with AuthServ
+        """Authenticate with AuthServ
 
         Parameters:
 
@@ -112,8 +104,7 @@ class SrvX(object):
         """
         self.log.debug("Authenticating with AuthServ as %s", username)
         # Send the AuthServ auth request
-        response = self._send_command('AuthServ AUTH %s %s' % \
-                                      (username, password))
+        response = self._send_command('AuthServ AUTH %s %s' % (username, password))
 
         # Parse the response
         if response['data'][0] == 'I recognize you.':
@@ -128,12 +119,12 @@ class SrvX(object):
 
     def generate_token(self):
         """Return a token generated from a random number"""
-        return 'GS%05d' % randint(0,65535)
+        return 'GS%05d' % randint(0, 65535)
 
     @staticmethod
     def decode_string(string):
         try:
-             return string.decode('UTF-8')
+            return string.decode('UTF-8')
         except UnicodeDecodeError:
             try:
                 return string.decode('iso-8859-1')
@@ -148,7 +139,6 @@ class SrvX(object):
 
         # Loop until the response is done
         while not response_done:
-
             # Append data from the socket into the global buffer
             tmp = self.socket.recv(32768)
             if not tmp:
@@ -172,13 +162,11 @@ class SrvX(object):
 
                 # If our token matches
                 if parts[0] == self.token:
-                    self.log.debug('Matched on token %s; response code %s' % \
-                                   (parts[0], parts[1]))
+                    self.log.debug('Matched on token %s; response code %s' % (parts[0], parts[1]))
 
                     # We did not auth with QServer Successfully
                     if parts[1] == 'X':
-                        self.log.error('QServer Authentication Failure: %s' % \
-                                       line)
+                        self.log.error('QServer Authentication Failure: %s' % line)
                         self.socket.close()
                         raise AuthenticationError(line)
 
@@ -209,8 +197,7 @@ class SrvX(object):
 
         # Remove our command from the response buffer
         self.response = self.response[command_length:]
-        self.log.debug('Processed %i bytes leaving %i bytes in the buffer' \
-                       % (command_length, len(self.response)))
+        self.log.debug('Processed %i bytes leaving %i bytes in the buffer' % (command_length, len(self.response)))
 
         # Build our response packet
         response = {'data': []}
@@ -229,7 +216,6 @@ class SrvX(object):
         return response
 
     def god_mode(self, enabled):
-
         self.log.debug('Toggling god_mode to: %i' % enabled)
         if enabled:
             # Enable helping mode
@@ -239,9 +225,8 @@ class SrvX(object):
             self._send_command('chanserv god off')
 
     def _send_command(self, command, no_response=False, hide_arg=None):
-
         # Check for command injection
-        if command.find('\n') != -1 or command.find('\r') != -1:
+        if '\n' in command or '\r' in command:
             raise QServerSecurityViolation
 
         # Get our token
@@ -272,7 +257,6 @@ class SrvX(object):
         return response
 
     def send_command(self, command, no_response=False, hide_arg=None):
-
         # If we're not authenticated do not send the command
         if not self.authenticated:
             raise NotAuthenticated

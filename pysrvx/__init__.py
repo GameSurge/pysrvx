@@ -27,27 +27,18 @@ if __name__ == '__main__':
                                    version=version_string,
                                    description=description)
 
-    parser.add_option("-i", "--ipaddr", action="store", dest="ipaddr",
-                        default='127.0.0.1',
-                        help="Host IP Address")
-
-    parser.add_option("-b", "--bind", action="store", dest="bind_ip",
-                        default=None,
-                        help="Local IP Address")
-
-    parser.add_option("-p", "--port", action="store", dest="port",
-                        default=7702,
-                        help="Host TCP Port")
-
+    parser.add_option("-i", "--ipaddr", action="store", dest="ipaddr", default='127.0.0.1',
+                      help="Host IP Address")
+    parser.add_option("-b", "--bind", action="store", dest="bind_ip", default=None,
+                      help="Local IP Address")
+    parser.add_option("-p", "--port", action="store", dest="port", default=7702,
+                      help="Host TCP Port")
     parser.add_option("-k", "--password", action="store", dest="password",
-                        help="QServer password")
-
+                      help="QServer password")
     parser.add_option("-a", "--auth", action="store", dest="auth",
-                        help="AuthServ username:password pair to use")
-
-    parser.add_option("-H", "--helpserv", action="store", dest="helpbot",
-                        default=None,
-                        help="HelpServ bot name")
+                      help="AuthServ username:password pair to use")
+    parser.add_option("-H", "--helpserv", action="store", dest="helpbot", default=None,
+                      help="HelpServ bot name")
 
     # Parse our options and arguments
     options, args = parser.parse_args()
@@ -71,8 +62,7 @@ if __name__ == '__main__':
     if len(args) >= 2:
 
         # Intialize srvx
-        srvx = SrvX(options.ipaddr, options.port, options.password,
-            auth[0], auth[1], options.bind_ip)
+        srvx = SrvX(options.ipaddr, options.port, options.password, auth[0], auth[1], options.bind_ip)
 
         class_name = args[0].lower()
         function_name = args[1]
@@ -92,6 +82,10 @@ if __name__ == '__main__':
             obj = HelpServBot(srvx, options.helpbot)
         elif class_name == 'opserv':
             obj = OpServ(srvx)
+        else:
+            print('Error: invalid service name')
+            parser.print_help()
+            sys.exit(1)
 
         # Get the function handle
         function = getattr(obj, function_name)
