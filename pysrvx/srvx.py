@@ -9,23 +9,27 @@ from socket import socket, error as socket_error, AF_INET,  SOCK_STREAM
 
 
 # Exceptions
-class AuthenticationError(Exception):
+class SrvXError(Exception):
     pass
 
 
-class ConnectionError(Exception):
+class AuthenticationError(SrvXError):
     pass
 
 
-class NotAuthenticated(Exception):
+class ConnectionError(SrvXError):
     pass
 
 
-class NotConnected(Exception):
+class NotAuthenticated(SrvXError):
     pass
 
 
-class QServerSecurityViolation(Exception):
+class NotConnected(SrvXError):
+    pass
+
+
+class QServerSecurityViolation(SrvXError):
     pass
 
 

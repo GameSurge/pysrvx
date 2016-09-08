@@ -1,7 +1,7 @@
 """
 pysrvx Srvx QServer Integration Package
 """
-from .srvx import SrvX
+from .srvx import SrvX, SrvXError
 from .authserv import AuthServ
 from .chanserv import ChanServ
 from .helpserv import HelpServ, HelpServBot
