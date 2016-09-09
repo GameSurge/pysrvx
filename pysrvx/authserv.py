@@ -157,11 +157,23 @@ class AuthServ(object):
 
         return accounts
 
-    def checkpass(self, account, password):
+    def checkpass(self, account, password, verbose=False):
         # Check to see if the account and password are valid in returning bool
         response = self._command('checkpass %s %s' % (account, password),
                                  hide_arg=2)
-        return response['data'][0] == 'Yes.'
+        msg = response['data'][0]
+        valid = (msg == 'Yes.')
+        if not verbose:
+            return valid
+        reason = None
+        if not valid:
+            if msg == 'No.':
+                reason = 'invalid_password'
+            elif msg.endswith('has not been registered.'):
+                reason = 'invalid_account'
+            else:
+                reason = 'unknown'
+        return {'valid': valid, 'reason': reason}
 
     def oregister(self, account, password, email=None, mask=None):
         # Register a new AuthServ account
